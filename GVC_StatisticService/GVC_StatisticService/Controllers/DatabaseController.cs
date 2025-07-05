@@ -15,7 +15,7 @@ namespace GVC_StatisticService.Controllers
         }
 
         [HttpGet]
-        [Route("Get")]
+        [Route("parseCsv")]
         public OkObjectResult Get() {
 
             return Ok(readCsvService.ReadCsv());

@@ -11,14 +11,13 @@ namespace GVC_StatisticService.Service
     {
         private string pathToCsv = "C:\\Practice\\Csv\\declarate.csv";
 
-
         //ToDo: сделать парсинг типов данных (пока что все string).
-        public List<Report> ReadCsv()
+        public List<ReportBase> ReadCsv()
         {
             using var reader = new StreamReader(pathToCsv);
             using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
 
-            var records = csv.GetRecords<Report>().ToList();
+            var records = csv.GetRecords<ReportBase>().ToList();
 
             return records;
         }

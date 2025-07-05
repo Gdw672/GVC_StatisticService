@@ -4,6 +4,6 @@ namespace GVC_StatisticService.Service.Interface
 {
     public interface IReadCsvService
     {
-        public List<Report> ReadCsv();
+        public List<ReportBase> ReadCsv();
     }
 }
