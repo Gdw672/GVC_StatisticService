@@ -1,4 +1,5 @@
 using GVC_StatisticService.Context;
+using GVC_StatisticService.Context.Interface;
 using GVC_StatisticService.Service;
 using GVC_StatisticService.Service.Interface;
 using Microsoft.EntityFrameworkCore;
@@ -12,14 +13,17 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddTransient<IReadCsvService, ReadCsvService>();
-
 builder.Services.AddDbContext<StatisticDbContext>(options =>
     options.UseNpgsql("Host=localhost;Port=5433;Username=postgres;Password=example;Database=statistic"));
 
+builder.Services.AddScoped<IStatisticDbContext>(provider =>
+    provider.GetRequiredService<StatisticDbContext>());
+
+builder.Services.AddScoped<IReadCsvService, ReadCsvService>();
+builder.Services.AddScoped<IReportDbService, ReportDbService>();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

@@ -8,10 +8,20 @@ namespace GVC_StatisticService.Controllers
     [ApiController]
     public class DatabaseController : ControllerBase
     {
+        //ToDo: потом убрать отсюда readCsvService
         private readonly IReadCsvService readCsvService;
-        public DatabaseController(IReadCsvService readCsvService) 
+        private readonly IReportDbService reportDbService;
+        public DatabaseController(IReadCsvService readCsvService, IReportDbService reportDbService) 
         { 
             this.readCsvService = readCsvService;
+            this.reportDbService = reportDbService;
+        }
+
+        [HttpPut]
+        [Route("WriteFromFile")]
+        public OkObjectResult WriteFromFile()
+        {
+            return Ok(reportDbService.WriteReports());
         }
 
         [HttpGet]

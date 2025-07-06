@@ -2,6 +2,7 @@
 using GVC_StatisticService.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -10,9 +11,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GVC_StatisticService.Migrations
 {
     [DbContext(typeof(StatisticDbContext))]
-    partial class StatisticDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250706165009_AddScoTypesAndServices")]
+    partial class AddScoTypesAndServices
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

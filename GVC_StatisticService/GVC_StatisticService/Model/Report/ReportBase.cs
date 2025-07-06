@@ -1,4 +1,4 @@
-﻿namespace GVC_StatisticService.Model
+﻿namespace GVC_StatisticService.Model.Report
 {
     public class ReportBase
     {

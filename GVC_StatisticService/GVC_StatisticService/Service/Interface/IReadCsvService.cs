@@ -1,4 +1,4 @@
-﻿using GVC_StatisticService.Model;
+﻿using GVC_StatisticService.Model.Report;
 
 namespace GVC_StatisticService.Service.Interface
 {
