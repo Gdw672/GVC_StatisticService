@@ -19,9 +19,9 @@ namespace GVC_StatisticService.Controllers
 
         [HttpPut]
         [Route("WriteFromFile")]
-        public OkObjectResult WriteFromFile()
+        public async Task<OkObjectResult> WriteFromFile()
         {
-            return Ok(reportDbService.WriteReports());
+            return Ok(await reportDbService.WriteReports());
         }
 
         [HttpGet]

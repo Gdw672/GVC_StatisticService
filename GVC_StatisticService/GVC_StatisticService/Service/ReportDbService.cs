@@ -14,11 +14,11 @@ namespace GVC_StatisticService.Service
             this.statisticDbContext = statisticDbContext;
         }
 
-        public OperationResult WriteReports()
+        public async Task<OperationResult> WriteReports()
         {
            var reports = readCsvService.ReadCsv();
 
-           return statisticDbContext.WriteReports(reports);
+           return await statisticDbContext.WriteReports(reports);
         }
     }
 }

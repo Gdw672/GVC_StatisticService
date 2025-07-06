@@ -5,6 +5,6 @@ namespace GVC_StatisticService.Context.Interface
 {
     public interface IStatisticDbContext
     {
-        public OperationResult WriteReports(List<ReportBase> reports);
+        public Task<OperationResult> WriteReports(List<ReportBase> reports);
     }
 }
