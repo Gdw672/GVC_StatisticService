@@ -45,6 +45,7 @@ namespace GVC_StatisticService.Model.Report
             this.КРАТКОЕ_ОПИСАНИЕ = reportBase.КРАТКОЕ_ОПИСАНИЕ;
             this.ПОДРОБНОЕ_ОПИСАНИЕ = reportBase.ПОДРОБНОЕ_ОПИСАНИЕ;
             this.РЕШЕНИЕ = reportBase.РЕШЕНИЕ;
+            this.дата_отчета = reportBase.дата_отчета;
         }
     }
 }

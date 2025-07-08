@@ -1,5 +1,6 @@
 ﻿using GVC_StatisticService.Context.Interface;
 using GVC_StatisticService.Enum;
+using GVC_StatisticService.Model;
 using GVC_StatisticService.Model.Report;
 using GVC_StatisticService.Model.SCO_service;
 using GVC_StatisticService.Model.SCO_types;
@@ -16,6 +17,7 @@ namespace GVC_StatisticService.Context
         public DbSet<Report> reports { get; set; }
         public DbSet<SCO_service> SCO_services { get; set; }
         public DbSet<SCO_type> SCO_types { get; set; }
+        public DbSet<CountReport> countReports { get; set; }
 
         public async Task<OperationResult> WriteReports(List<ReportBase> reports)
         {
@@ -40,6 +42,25 @@ namespace GVC_StatisticService.Context
             await base.SaveChangesAsync();
 
             return OperationResult.Ok;
+        }
+
+        public List<string> GetSCO_types()
+        {
+            List<string> types = new List<string>();
+            foreach (var type in this.SCO_types)
+            {
+                types.Add(type.Name);
+            }
+            return types;
+        }
+        public List<string> GetSCO_services()
+        {
+            List<string> services = new List<string>();
+            foreach (var service in this.SCO_services)
+            {
+                services.Add(service.Name);
+            }
+            return services;
         }
     }
 }

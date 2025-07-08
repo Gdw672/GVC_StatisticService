@@ -3,6 +3,7 @@ using System;
 using GVC_StatisticService.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GVC_StatisticService.Migrations
 {
     [DbContext(typeof(StatisticDbContext))]
-    partial class StatisticDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250708140044_addReportCount")]
+    partial class addReportCount
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -39,7 +42,7 @@ namespace GVC_StatisticService.Migrations
                     b.Property<double>("входной_поток_не_АС_ОЗ")
                         .HasColumnType("double precision");
 
-                    b.Property<DateTime?>("дата_отчета")
+                    b.Property<DateTime>("дата")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<double>("процент_АС_ОЗ")
@@ -211,9 +214,6 @@ namespace GVC_StatisticService.Migrations
                     b.Property<string>("ЭК_робота")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<DateTime?>("дата_отчета")
-                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 

@@ -3,6 +3,7 @@ using System;
 using GVC_StatisticService.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GVC_StatisticService.Migrations
 {
     [DbContext(typeof(StatisticDbContext))]
-    partial class StatisticDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250707202748_fixReportDataTypes")]
+    partial class fixReportDataTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,64 +24,6 @@ namespace GVC_StatisticService.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("GVC_StatisticService.Model.CountReport", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<double>("входной_поток_АС_ОЗ")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("входной_поток_всего")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("входной_поток_не_АС_ОЗ")
-                        .HasColumnType("double precision");
-
-                    b.Property<DateTime?>("дата_отчета")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<double>("процент_АС_ОЗ")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("процент_не_АС_ОЗ")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("процент_самостоятельности")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("процент_цифровых_сервисов")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("процент_чат_ботов")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("роботы")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("самостоятельность")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("цифровые_сервисы_АС_ОЗ")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("цифровые_сервисы_всего")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("цифровые_сервисы_не_АС_ОЗ")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("чат_боты")
-                        .HasColumnType("double precision");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("countReports");
-                });
 
             modelBuilder.Entity("GVC_StatisticService.Model.Report.Report", b =>
                 {
@@ -211,9 +156,6 @@ namespace GVC_StatisticService.Migrations
                     b.Property<string>("ЭК_робота")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<DateTime?>("дата_отчета")
-                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 

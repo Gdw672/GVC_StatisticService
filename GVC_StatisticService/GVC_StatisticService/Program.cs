@@ -21,6 +21,7 @@ builder.Services.AddScoped<IStatisticDbContext>(provider =>
 
 builder.Services.AddScoped<IReadCsvService, ReadCsvService>();
 builder.Services.AddScoped<IReportDbService, ReportDbService>();
+builder.Services.AddScoped<ICountReportService, CountReportService>();
 
 var app = builder.Build();
 
