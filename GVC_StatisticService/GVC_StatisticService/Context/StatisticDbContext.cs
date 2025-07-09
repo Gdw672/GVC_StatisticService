@@ -46,21 +46,11 @@ namespace GVC_StatisticService.Context
 
         public List<string> GetSCO_types()
         {
-            List<string> types = new List<string>();
-            foreach (var type in SCO_types)
-            {
-                types.Add(type.Name);
-            }
-            return types;
+           return SCO_types.Select(type => type.Name).ToList();
         }
         public List<string> GetSCO_services()
         {
-            List<string> services = new List<string>();
-            foreach (var service in SCO_services)
-            {
-                services.Add(service.Name);
-            }
-            return services;
+            return SCO_services.Select(type => type.Name).ToList();
         }
 
         //ToDo: вытаскиваем инфу Report по дате, считает и записываем отчет за день

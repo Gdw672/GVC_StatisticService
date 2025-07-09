@@ -7,5 +7,7 @@ namespace GVC_StatisticService.Context.Interface
     {
         public Task<OperationResult> WriteReports(List<ReportBase> reports);
         Task<List<Report>> GetReportsByDate(DateTime date);
+        List<string> GetSCO_types();
+        List<string> GetSCO_services();
     }
 }
