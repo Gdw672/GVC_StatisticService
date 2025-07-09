@@ -47,7 +47,7 @@ namespace GVC_StatisticService.Context
         public List<string> GetSCO_types()
         {
             List<string> types = new List<string>();
-            foreach (var type in this.SCO_types)
+            foreach (var type in SCO_types)
             {
                 types.Add(type.Name);
             }
@@ -56,11 +56,20 @@ namespace GVC_StatisticService.Context
         public List<string> GetSCO_services()
         {
             List<string> services = new List<string>();
-            foreach (var service in this.SCO_services)
+            foreach (var service in SCO_services)
             {
                 services.Add(service.Name);
             }
             return services;
+        }
+
+        //ToDo: вытаскиваем инфу Report по дате, считает и записываем отчет за день
+        public async Task<List<Report>> GetReportsByDate(DateTime date)
+        {
+            var startDate = date.Date;
+            var endDate = startDate.AddDays(1);
+
+            return await reports.Where(r => r.дата_отчета.HasValue && r.дата_отчета.Value >= startDate && r.дата_отчета.Value < endDate).ToListAsync();
         }
     }
 }

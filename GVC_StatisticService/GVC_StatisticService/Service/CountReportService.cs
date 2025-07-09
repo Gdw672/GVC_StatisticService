@@ -1,4 +1,5 @@
-﻿using GVC_StatisticService.Model;
+﻿using GVC_StatisticService.Context.Interface;
+using GVC_StatisticService.Model;
 using GVC_StatisticService.Model.Report;
 using GVC_StatisticService.Service.Interface;
 
@@ -6,9 +7,20 @@ namespace GVC_StatisticService.Service
 {
     public class CountReportService : ICountReportService
     {
-        public List<CountReport> GetCountReports(List<Report> reports)
+        private readonly IStatisticDbContext statisticDbContext;
+
+        public CountReportService(IStatisticDbContext statisticDbContext)
         {
-            return null;
+            this.statisticDbContext = statisticDbContext;
+        }
+
+        public async Task<List<CountReport>> GetCountReports(DateTime date)
+        {
+            var reports = await statisticDbContext.GetReportsByDate(date);
+
+            var group = reports.Where(r => r.Рабочая_группа != null && r.Рабочая_группа.Contains("УДХ")).Count();
+
+            return new List<CountReport>();
         }
 
         public List<CountReport> GetTestData()

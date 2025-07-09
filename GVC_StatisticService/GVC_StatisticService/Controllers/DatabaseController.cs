@@ -40,5 +40,12 @@ namespace GVC_StatisticService.Controllers
         {
             return Ok(countReportService.GetTestData());
         }
+
+        [HttpGet]
+        [Route("tryCountReportBase")]
+        public async Task<IActionResult> GetData() {
+
+            return Ok(await countReportService.GetCountReports(DateTime.SpecifyKind(new DateTime(2025, 7, 8), DateTimeKind.Utc)));
+        }
     }
 }

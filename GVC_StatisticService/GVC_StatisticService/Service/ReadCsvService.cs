@@ -36,6 +36,7 @@ namespace GVC_StatisticService.Service
                 {
                     record.ВРЕМЯ_ЗАКРЫТИЯ = DateTime.SpecifyKind(record.ВРЕМЯ_ЗАКРЫТИЯ.Value, DateTimeKind.Utc);
                 }
+                record.дата_отчета = DateTime.UtcNow;
             }
             return records;
         }

@@ -6,5 +6,6 @@ namespace GVC_StatisticService.Context.Interface
     public interface IStatisticDbContext
     {
         public Task<OperationResult> WriteReports(List<ReportBase> reports);
+        Task<List<Report>> GetReportsByDate(DateTime date);
     }
 }
