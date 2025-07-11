@@ -1,225 +1,320 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<title>Таблица данных</title>
-<style>
-  body{font-family:sans-serif;margin:20px}
-  h3{display:inline-block;margin-right:20px}
+  <meta charset="UTF-8" />
+  <title>Отчет по данным</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
 
-  /*‑‑‑ КНОПКА ПОВОРОТА ‑‑‑*/
-  #toggleButton{padding:6px 12px;background:#007acc;color:#fff;border:0;border-radius:4px;cursor:pointer;transition:.2s}
-  #toggleButton:hover{background:#005ea8}
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+    }
 
-  /*‑‑‑ ТАБЛИЦА ‑‑‑*/
-  table{border-collapse:collapse;width:100%;margin-top:10px}
-  th,td{border:1px solid #aaa;padding:6px 10px;text-align:center}
-  th{background:#f2f2f2}
-  td.metric{background:#fff;cursor:default}
+    th, td {
+      border: 1px solid #aaa;
+      padding: 6px;
+      text-align: center;
+    }
 
-  /* кликабельные параметры */
-  th.param-header{background:#f9f9f9;cursor:pointer;transition:.2s}
-  th.param-header:hover{background:#e6f3ff}
-  th.param-header.selected{background:#d0ecff;font-weight:bold;outline:2px solid #007acc}
+    th {
+      background-color: #eee;
+      cursor: pointer;
+    }
 
-  /* кликабельные даты */
-  .date-cell,.date-header{cursor:pointer;transition:.2s}
-  .date-cell:hover,.date-header:hover{background:#ffeccf}
-  .date-selected{background:#ffd99b!important;font-weight:bold}
+    .metric:hover {
+      background-color: #cceeff;
+    }
 
-  /*‑‑‑ СПИСКИ ПАРАМЕТРОВ ‑‑‑*/
-  #listsWrapper{margin-top:20px;display:flex;flex-wrap:wrap;gap:16px}
-  .list-block{min-width:150px;padding:10px;border:1px solid #d0e5f7;border-radius:4px;background:#f6faff;cursor:pointer}
-  .list-block.active{border:2px solid #007acc}
-  .list-block h4{margin:0 0 6px;font-size:14px}
-  .list-block ul{margin:0;padding-left:18px}
-  .list-block li{font-size:13px}
+    .metric:active {
+      background-color: #aaddff;
+    }
 
-  /*‑‑‑ КНОПКА ДОБАВЛЕНИЯ СПИСКА ‑‑‑*/
-  #addListBtn{margin-top:12px;padding:6px 12px;background:#28a745;color:#fff;border:0;border-radius:4px;cursor:pointer;transition:.2s}
-  #addListBtn:hover{background:#218838}
-</style>
+    .selected {
+      background-color: #d7f0ff !important;
+      outline: 2px solid #007acc;
+    }
+
+    #toggleButton {
+      margin-top: 10px;
+      float: right;
+    }
+
+    #listsContainer {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .listBlock {
+      border: 1px solid #aaa;
+      padding: 10px;
+      min-height: 40px;
+      background: #f9f9f9;
+      cursor: pointer;
+    }
+
+    .listBlock.active {
+      background: #e0f7ff;
+      border: 2px solid #007acc;
+    }
+
+    #addListButton {
+      margin-top: 10px;
+      padding: 5px 10px;
+      font-size: 14px;
+    }
+
+    th.selected, td.selected {
+  background-color: #007acc !important;
+  color: white;
+  font-weight: bold;
+  border: 2px solid #005f99;
+}
+
+.tag {
+  background-color: #007acc;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+  </style>
 </head>
 <body>
-  <h3>Отчёт по данным</h3>
+  <h3>Отчет по данным</h3>
   <button id="toggleButton">Повернуть таблицу</button>
   <div id="tableContainer"></div>
 
-  <div id="listsWrapper"></div>
-  <button id="addListBtn">+</button>
+  <h4>График по тегам</h4>
+  <div id="listsContainer"></div>
+  <button id="addListButton">+ Добавить новый график</button>
 
-<script>
-const apiUrl = "http://localhost:5134/api/Database/testData";
+  <script>
+    const apiUrl = "http://localhost:5134/api/Database/testData";
+let originalData = [];
+let transposed = false;
 
-let originalData=[],transposed=false;
-let dateSelections=new Set();
+let selectedParamsByList = [];
+let selectedDates = [];
+let activeListIndex = 0;
 
-/* списки параметров */
-let lists=[{id:1,title:"Список 1",params:new Set()}];
-let activeListId=1;
-
-/*‑‑‑ ЗАГРУЗКА ДАННЫХ ‑‑‑*/
-(async() =>{
-  try{
-    const res=await fetch(apiUrl);
-    originalData=await res.json();
-    renderEverything();
-  }catch(e){console.error("Ошибка загрузки:",e);}
-})();
-
-/*‑‑‑ ПЕРЕРИСОВКА ВСЕГО ‑‑‑*/
-function renderEverything(){
-  renderTable();
+function initFirstList() {
+  selectedParamsByList = [[]];
   renderLists();
 }
 
-/*‑‑‑ ФОРМАТ ПРОЦЕНТОВ/ДАТ ‑‑‑*/
-function formatEntry(entry,fields){
-  const res={};
-  for(const k of fields){
-    if(k.startsWith("процент_")) res[k]=(entry[k]*100).toFixed(2)+" %";
-    else if(k==="дата_отчета")   res[k]=new Date(entry[k]).toLocaleDateString("ru-RU");
-    else                          res[k]=entry[k];
+function formatEntry(entry) {
+  const result = { ...entry };
+  if (result.дата_отчета) {
+    result.дата_отчета_raw = new Date(result.дата_отчета);
+    result.дата_отчета = new Date(result.дата_отчета).toLocaleDateString("ru-RU");
   }
-  return res;
+  for (let key in result) {
+    if (key.startsWith("процент_")) {
+      result[key] = (result[key] * 100).toFixed(0) + " %";
+    }
+  }
+  return result;
 }
 
-/*‑‑‑ ТАБЛИЦА ‑‑‑*/
-function renderTable(){
-  const cont=document.getElementById("tableContainer");
-  cont.innerHTML="";
-
-  if(!originalData.length) return;
-
-  const fields=Object.keys(originalData[0]).filter(k=>k!=="id");
-  const dataFormatted=originalData.map(e=>formatEntry(e,fields));
-
-  /* сортируем даты: выбранные → первые, внутри по возрастанию */
-  const dateKey="дата_отчета";
-  const selectedArr=[...dateSelections].sort((a,b)=>strToDate(a)-strToDate(b));
-  const notSel=dataFormatted.filter(r=>!dateSelections.has(r[dateKey]));
-  const sel=dataFormatted.filter(r=>dateSelections.has(r[dateKey]))
-                          .sort((a,b)=>strToDate(a[dateKey])-strToDate(b[dateKey]));
-  const rowsOrdered=[...sel,...notSel];
-
-  const tbl=document.createElement("table");
-
-  if(!transposed){
-    /*‑‑ шапка ‑‑*/
-    const thead=tbl.createTHead();
-    const hr=thead.insertRow();
-    hr.insertCell().outerHTML="<th>Дата</th>";
-    fields.filter(f=>f!==dateKey).forEach(f=>{
-      const th=document.createElement("th");
-      th.textContent=f;
-      th.className="param-header"+(isParamSelected(f)?" selected":"");
-      th.dataset.param=f;
-      th.onclick=()=>toggleParam(f);
-      hr.appendChild(th);
-    });
-
-    /*‑‑ тело ‑‑*/
-    const tbody=tbl.createTBody();
-    rowsOrdered.forEach(r=>{
-      const tr=tbody.insertRow();
-      const tdDate=tr.insertCell();
-      tdDate.textContent=r[dateKey];
-      tdDate.className="date-cell"+(dateSelections.has(r[dateKey])?" date-selected":"");
-      tdDate.onclick=()=>toggleDate(r[dateKey]);
-
-      fields.filter(f=>f!==dateKey).forEach(f=>{
-        const td=tr.insertCell();
-        td.textContent=r[f];
-        td.className="metric";
-      });
-    });
-
-  }else{
-    /*‑‑ транспонированный вид ‑‑*/
-    const datesOrdered=[...selectedArr,
-                        ...dataFormatted.map(r=>r[dateKey]).filter(d=>!dateSelections.has(d))];
-
-    /*‑‑ шапка ‑‑*/
-    const thead=tbl.createTHead();
-    const hr=thead.insertRow();
-    hr.insertCell().outerHTML="<th>Показатель</th>";
-    datesOrdered.forEach(d=>{
-      const th=document.createElement("th");
-      th.textContent=d;
-      th.className="date-header"+(dateSelections.has(d)?" date-selected":"");
-      th.onclick=()=>toggleDate(d);
-      hr.appendChild(th);
-    });
-
-    /*‑‑ тело ‑‑*/
-    const tbody=tbl.createTBody();
-    fields.filter(f=>f!==dateKey).forEach(f=>{
-      const tr=tbody.insertRow();
-      const th=tr.insertCell();
-      th.outerHTML=`<th class="param-header${isParamSelected(f)?" selected":""}" data-param="${f}">${f}</th>`;
-      th.nextSibling.onclick=()=>toggleParam(f); // после замены outerHTML ссылка смещается, обработчик ниже
-      [...tr.cells].forEach(c=>{});             // placeholder
-
-      datesOrdered.forEach(d=>{
-        const rowData=dataFormatted.find(r=>r[dateKey]===d);
-        const td=tr.insertCell();
-        td.textContent=rowData?rowData[f]:"";
-        td.className="metric";
-      });
-      /* добавить обработчик после вставки */
-      tr.cells[0].onclick=()=>toggleParam(f);
-    });
+async function loadData() {
+  try {
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    originalData = data;
+    renderTable(data);
+    initFirstList();
+  } catch (error) {
+    console.error("Ошибка загрузки данных:", error);
   }
-
-  cont.appendChild(tbl);
 }
 
-/*‑‑‑ СПИСКИ ‑‑‑*/
-function renderLists(){
-  const wrap=document.getElementById("listsWrapper");
-  wrap.innerHTML="";
-  lists.forEach(l=>{
-    const block=document.createElement("div");
-    block.className="list-block"+(l.id===activeListId?" active":"");
-    block.onclick=()=>{activeListId=l.id;renderEverything();};
-    block.innerHTML=`<h4>${l.title}</h4><ul>${
-      [...l.params].map(p=>`<li>${p}</li>`).join("")
-    }</ul>`;
-    wrap.appendChild(block);
+function toggleParam(param) {
+  const list = selectedParamsByList[activeListIndex];
+  const index = list.indexOf(param);
+  if (index >= 0) {
+    list.splice(index, 1);
+  } else {
+    list.push(param);
+  }
+  renderLists();
+  renderTable(originalData);
+}
+
+function toggleDate(rawDate) {
+  const timestamp = new Date(rawDate).getTime();
+  const index = selectedDates.findIndex(d => new Date(d).getTime() === timestamp);
+  if (index >= 0) {
+    selectedDates.splice(index, 1);
+  } else {
+    selectedDates.push(rawDate);
+  }
+  selectedDates.sort((a, b) => new Date(a) - new Date(b));
+  renderTable(originalData);
+}
+
+function renderLists() {
+  const container = document.getElementById("listsContainer");
+  container.innerHTML = "";
+  selectedParamsByList.forEach((params, index) => {
+    const block = document.createElement("div");
+    block.className = "listBlock";
+    if (index === activeListIndex) block.classList.add("active");
+
+    block.innerHTML = "<strong>График " + (index + 1) + ":</strong> ";
+    params.forEach(p => {
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.innerText = p;
+      block.appendChild(tag);
+    });
+
+    block.addEventListener("click", () => {
+      activeListIndex = index;
+      renderLists();
+      renderTable(originalData);
+    });
+    container.appendChild(block);
   });
 }
 
-/*‑‑‑ УТИЛИТЫ ‑‑‑*/
-function strToDate(str){const [d,m,y]=str.split(".");return new Date(+y,+m-1,+d);}
-function curList(){return lists.find(l=>l.id===activeListId);}
-function isParamSelected(p){return curList().params.has(p);}
+function renderTable(data) {
+  const container = document.getElementById("tableContainer");
+  container.innerHTML = "";
 
-/*‑‑‑ ПЕРЕКЛЮЧЕНИЕ ПАРАМЕТРА ‑‑‑*/
-function toggleParam(param){
-  const list=curList();
-  list.params.has(param)?list.params.delete(param):list.params.add(param);
-  renderEverything();
+  const formattedData = data.map(formatEntry);
+  const fields = Object.keys(formattedData[0]).filter(f => f !== "id" && f !== "дата_отчета_raw");
+
+  const table = document.createElement("table");
+
+  if (!transposed) {
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    headerRow.appendChild(document.createElement("th")).innerText = "Дата";
+
+    fields.filter(f => f !== "дата_отчета").forEach(field => {
+      const th = document.createElement("th");
+      th.innerText = field;
+      if (selectedParamsByList[activeListIndex].includes(field)) th.classList.add("selected");
+      th.addEventListener("click", () => toggleParam(field));
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+
+    const sortedData = [...formattedData];
+    const priority = selectedDates.map(d => new Date(d).toLocaleDateString("ru-RU"));
+    sortedData.sort((a, b) => {
+      const ia = priority.indexOf(a.дата_отчета);
+      const ib = priority.indexOf(b.дата_отчета);
+      if (ia >= 0 && ib >= 0) return ia - ib;
+      if (ia >= 0) return -1;
+      if (ib >= 0) return 1;
+      return new Date(b.дата_отчета_raw) - new Date(a.дата_отчета_raw);
+    });
+
+    sortedData.forEach(entry => {
+      const row = document.createElement("tr");
+
+      const dateCell = document.createElement("td");
+      dateCell.innerText = entry.дата_отчета;
+      const isSelected = selectedDates.some(
+        d => new Date(d).getTime() === entry.дата_отчета_raw.getTime()
+      );
+      if (isSelected) {
+        dateCell.classList.add("selected");
+      } else {
+        dateCell.classList.remove("selected");
+      }
+      dateCell.addEventListener("click", () => toggleDate(entry.дата_отчета_raw));
+      row.appendChild(dateCell);
+
+      fields.filter(f => f !== "дата_отчета").forEach(field => {
+        const cell = document.createElement("td");
+        cell.innerText = entry[field];
+        row.appendChild(cell);
+      });
+
+      tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+  } else {
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    headerRow.appendChild(document.createElement("th")).innerText = "Показатель";
+
+    const sortedDates = [...formattedData];
+    const priority = selectedDates.map(d => new Date(d).toLocaleDateString("ru-RU"));
+    sortedDates.sort((a, b) => {
+      const ia = priority.indexOf(a.дата_отчета);
+      const ib = priority.indexOf(b.дата_отчета);
+      if (ia >= 0 && ib >= 0) return ia - ib;
+      if (ia >= 0) return -1;
+      if (ib >= 0) return 1;
+      return new Date(b.дата_отчета_raw) - new Date(a.дата_отчета_raw);
+    });
+
+    sortedDates.forEach(entry => {
+      const th = document.createElement("th");
+      th.innerText = entry.дата_отчета;
+      const isSelected = selectedDates.some(
+        d => new Date(d).getTime() === entry.дата_отчета_raw.getTime()
+      );
+      if (isSelected) th.classList.add("selected");
+      th.addEventListener("click", () => toggleDate(entry.дата_отчета_raw));
+      headerRow.appendChild(th);
+    });
+
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    fields.filter(f => f !== "дата_отчета").forEach(field => {
+      const row = document.createElement("tr");
+      const paramCell = document.createElement("td");
+      paramCell.innerText = field;
+      if (selectedParamsByList[activeListIndex].includes(field)) paramCell.classList.add("selected");
+      paramCell.addEventListener("click", () => toggleParam(field));
+      row.appendChild(paramCell);
+
+      sortedDates.forEach(entry => {
+        const cell = document.createElement("td");
+        cell.innerText = entry[field];
+        row.appendChild(cell);
+      });
+
+      tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+  }
+
+  container.appendChild(table);
 }
 
-/*‑‑‑ ПЕРЕКЛЮЧЕНИЕ ДАТЫ ‑‑‑*/
-function toggleDate(dateStr){
-  dateSelections.has(dateStr)?dateSelections.delete(dateStr):dateSelections.add(dateStr);
-  renderTable();          // списки не меняются
-}
+document.getElementById("toggleButton").addEventListener("click", () => {
+  transposed = !transposed;
+  renderTable(originalData);
+});
 
-/*‑‑‑ ДОБАВИТЬ НОВЫЙ СПИСОК ‑‑‑*/
-document.getElementById("addListBtn").onclick=()=>{
-  const id=lists.length?Math.max(...lists.map(l=>l.id))+1:1;
-  lists.push({id,title:`Список ${id}`,params:new Set()});
-  activeListId=id;
-  renderEverything();
-};
+document.getElementById("addListButton").addEventListener("click", () => {
+  selectedParamsByList.push([]);
+  activeListIndex = selectedParamsByList.length - 1;
+  renderLists();
+  renderTable(originalData);
+});
 
-/*‑‑‑ КНОПКА ПОВОРОТА ‑‑‑*/
-document.getElementById("toggleButton").onclick=()=>{
-  transposed=!transposed;
-  renderTable();
-};
-</script>
+loadData();
+  </script>
 </body>
 </html>
