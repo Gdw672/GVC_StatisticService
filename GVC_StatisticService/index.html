@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<head>
+    <title>Таблица отчета</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: center;
+        }
+
+        input {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Отчет по цифровым сервисам</h2>
+
+    <label for="startDate">Дата начала (например, 23):</label>
+    <input type="number" id="startDate" min="1" max="31" />
+    <label for="endDate">Дата конца (например, 25):</label>
+    <input type="number" id="endDate" min="1" max="31" />
+    <button onclick="loadData()">Загрузить</button>
+
+    <table id="reportTable">
+        <thead>
+            <tr id="headerRow"></tr>
+        </thead>
+        <tbody id="dataBody"></tbody>
+    </table>
+
+    <script>
+    async function loadData() {
+      const start = document.getElementById('startDate').value;
+      const end = document.getElementById('endDate').value;
+
+      let url = 'http://localhost:5134/api/Database/testData';
+      // Пока фильтрация не используется, но подготовка есть:
+      // if (start && end) {
+      //   url = `https://localhost:7149/api/database/testData/${start}-${end}`;
+      // }
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        renderTable(data);
+      } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+      }
+    }
+
+    function renderTable(data) {
+      const tableHead = document.getElementById('headerRow');
+      const tableBody = document.getElementById('dataBody');
+      tableHead.innerHTML = '';
+      tableBody.innerHTML = '';
+
+      if (data.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="100%">Нет данных</td></tr>';
+        return;
+      }
+
+      // Заголовки
+      const keys = Object.keys(data[0]);
+      keys.forEach(key => {
+        const th = document.createElement('th');
+        th.textContent = key;
+        tableHead.appendChild(th);
+      });
+
+      // Строки
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        keys.forEach(key => {
+          const td = document.createElement('td');
+          td.textContent = row[key];
+          tr.appendChild(td);
+        });
+        tableBody.appendChild(tr);
+      });
+    }
+
+    // Загрузка при открытии
+    loadData();
+    </script>
+</body>
+</html>
