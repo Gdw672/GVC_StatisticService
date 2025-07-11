@@ -1,4 +1,3 @@
-// table-manager.js - Модуль для управления таблицей
 const TableManager = {
   config: null,
 
@@ -17,6 +16,7 @@ const TableManager = {
     // Кнопка добавления нового графика
     document.getElementById(this.config.addListButton).addEventListener('click', () => {
       window.AppState.selectedParamsByList.push([]);
+      window.AppState.chartsVisible.push(false);
       window.AppState.activeListIndex = window.AppState.selectedParamsByList.length - 1;
       this.renderLists();
       this.render();
@@ -42,6 +42,10 @@ const TableManager = {
       const response = await fetch(this.config.apiUrl);
       const data = await response.json();
       window.AppState.originalData = data;
+      window.AppState.chartsVisible = [false];
+      window.AppState.selectedParamsByList = [[]];
+      window.AppState.selectedDates = [];
+      window.AppState.activeListIndex = 0;
       this.render();
       this.renderLists();
     } catch (error) {
@@ -60,9 +64,8 @@ const TableManager = {
     this.renderLists();
     this.render();
     
-    // Уведомляем модуль графиков об изменении
-    if (window.ChartManager) {
-      window.ChartManager.onParamsChanged();
+    if (window.ChartManager && window.AppState.chartsVisible[window.AppState.activeListIndex]) {
+      window.ChartManager.renderChart(window.AppState.activeListIndex);
     }
   },
 
@@ -77,9 +80,12 @@ const TableManager = {
     window.AppState.selectedDates.sort((a, b) => new Date(a) - new Date(b));
     this.render();
     
-    // Уведомляем модуль графиков об изменении
     if (window.ChartManager) {
-      window.ChartManager.onDatesChanged();
+      window.AppState.chartsVisible.forEach((visible, index) => {
+        if (visible) {
+          window.ChartManager.renderChart(index);
+        }
+      });
     }
   },
 
@@ -92,23 +98,33 @@ const TableManager = {
       block.className = "listBlock";
       if (index === window.AppState.activeListIndex) block.classList.add("active");
 
-      block.innerHTML = "<strong>График " + (index + 1) + ":</strong> ";
+      const content = document.createElement("div");
+      content.innerHTML = "<strong>График " + (index + 1) + ":</strong> ";
+      
       params.forEach(p => {
         const tag = document.createElement("span");
         tag.className = "tag";
         tag.innerText = p;
-        block.appendChild(tag);
+        content.appendChild(tag);
       });
+
+      const showChartButton = document.createElement("button");
+      showChartButton.className = "showChartButton";
+      showChartButton.innerText = window.AppState.chartsVisible[index] ? "Обновить график" : "Показать график";
+      showChartButton.addEventListener("click", (e) => {
+        e.stopPropagation();
+        window.AppState.chartsVisible[index] = true;
+        window.ChartManager.renderChart(index);
+        this.renderLists();
+      });
+      content.appendChild(showChartButton);
+
+      block.appendChild(content);
 
       block.addEventListener("click", () => {
         window.AppState.activeListIndex = index;
         this.renderLists();
         this.render();
-        
-        // Уведомляем модуль графиков об изменении активного списка
-        if (window.ChartManager) {
-          window.ChartManager.onActiveListChanged();
-        }
       });
       
       container.appendChild(block);
@@ -135,7 +151,6 @@ const TableManager = {
   },
 
   renderNormalTable(table, formattedData, fields) {
-    // Заголовки
     const thead = document.createElement("thead");
     const headerRow = document.createElement("tr");
     headerRow.appendChild(document.createElement("th")).innerText = "Дата";
@@ -152,7 +167,6 @@ const TableManager = {
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
-    // Данные
     const tbody = document.createElement("tbody");
     const sortedData = this.getSortedData(formattedData);
 
@@ -183,7 +197,6 @@ const TableManager = {
   },
 
   renderTransposedTable(table, formattedData, fields) {
-    // Заголовки (даты)
     const thead = document.createElement("thead");
     const headerRow = document.createElement("tr");
     headerRow.appendChild(document.createElement("th")).innerText = "Показатель";
@@ -203,7 +216,6 @@ const TableManager = {
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
-    // Данные (параметры как строки)
     const tbody = document.createElement("tbody");
     fields.filter(f => f !== "дата_отчета").forEach(field => {
       const row = document.createElement("tr");
@@ -243,7 +255,6 @@ const TableManager = {
     return sortedData;
   },
 
-  // Публичные методы для использования другими модулями
   getSelectedParams() {
     return window.AppState.selectedParamsByList[window.AppState.activeListIndex];
   },
