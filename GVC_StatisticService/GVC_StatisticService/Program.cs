@@ -21,6 +21,8 @@ builder.Services.AddScoped<IStatisticDbContext>(provider =>
 builder.Services.AddScoped<IReadCsvService, ReadCsvService>();
 builder.Services.AddScoped<IReportDbService, ReportDbService>();
 builder.Services.AddScoped<ICountReportService, CountReportService>();
+builder.Services.AddScoped<ITxtReadService, TxtReadService>();
+
 
 builder.Services.AddCors(options =>
 {

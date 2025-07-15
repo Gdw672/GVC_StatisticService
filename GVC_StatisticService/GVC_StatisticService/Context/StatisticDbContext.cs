@@ -1,5 +1,6 @@
 ﻿using GVC_StatisticService.Context.Interface;
 using GVC_StatisticService.Enum;
+using GVC_StatisticService.Migrations;
 using GVC_StatisticService.Model;
 using GVC_StatisticService.Model.Report;
 using GVC_StatisticService.Model.SCO_service;
@@ -61,5 +62,53 @@ namespace GVC_StatisticService.Context
 
             return await reports.Where(r => r.дата_отчета.HasValue && r.дата_отчета.Value >= startDate && r.дата_отчета.Value < endDate).ToListAsync();
         }
+
+        public async Task<List<CountReport>> GetReportsByRange(DateTime startDate, DateTime endDate)
+        {
+            return await countReports
+                .Where(r => r.дата_отчета.HasValue
+                         && r.дата_отчета.Value >= startDate
+                         && r.дата_отчета.Value <= endDate)
+                .ToListAsync();
+        }
+
+        public CountReport AddCountReport(CountReport report)
+        {
+            bool exists = countReports.Any(t => t.дата_отчета == report.дата_отчета);
+            if (!exists)
+            {
+                countReports.Add(report);
+
+                base.SaveChanges();
+
+                return report;
+            }
+            return null;
+        }
+
+        public void AddScoTypesAndServices(List<SCO_type> types, List<SCO_service> services)
+        {
+            foreach (var type in types)
+            {
+                bool exists = SCO_types.Any(t => t.Name == type.Name);
+                if (!exists)
+                {
+                    SCO_types.Add(type);
+                }
+            }
+
+            foreach (var service in services)
+            {
+                bool exists = SCO_services.Any(s => s.Name == service.Name);
+                if (!exists)
+                {
+                    SCO_services.Add(service);
+                }
+            }
+
+            base.SaveChanges();
+        }
+
+
     }
 }
