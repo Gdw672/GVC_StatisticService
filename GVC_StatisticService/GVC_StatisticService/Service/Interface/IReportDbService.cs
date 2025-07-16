@@ -4,6 +4,6 @@ namespace GVC_StatisticService.Service.Interface
 {
     public interface IReportDbService
     {
-        public Task<OperationResult> WriteReports();
+         Task<OperationResult> WriteAndCountReportByDate();
     }
 }

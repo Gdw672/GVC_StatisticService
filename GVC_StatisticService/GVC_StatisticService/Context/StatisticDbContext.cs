@@ -57,7 +57,7 @@ namespace GVC_StatisticService.Context
         //ToDo: вытаскиваем инфу Report по дате, считает и записываем отчет за день
         public async Task<List<Report>> GetReportsByDate(DateTime date)
         {
-            var startDate = date.Date;
+            var startDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
             var endDate = startDate.AddDays(1);
 
             return await reports.Where(r => r.дата_отчета.HasValue && r.дата_отчета.Value >= startDate && r.дата_отчета.Value < endDate).ToListAsync();
@@ -74,17 +74,21 @@ namespace GVC_StatisticService.Context
 
         public CountReport AddCountReport(CountReport report)
         {
+            if (report.дата_отчета.HasValue && report.дата_отчета.Value.Kind != DateTimeKind.Utc)
+            {
+                report.дата_отчета = DateTime.SpecifyKind(report.дата_отчета.Value, DateTimeKind.Utc);
+            }
+
             bool exists = countReports.Any(t => t.дата_отчета == report.дата_отчета);
             if (!exists)
             {
                 countReports.Add(report);
-
                 base.SaveChanges();
-
                 return report;
             }
             return null;
         }
+
 
         public void AddScoTypesAndServices(List<SCO_type> types, List<SCO_service> services)
         {

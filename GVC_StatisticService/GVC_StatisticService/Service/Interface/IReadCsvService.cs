@@ -4,6 +4,6 @@ namespace GVC_StatisticService.Service.Interface
 {
     public interface IReadCsvService
     {
-        public List<ReportBase> ReadCsv();
+        List<ReportBase> ReadCsvByName(string fileName, DateTime yesterday);
     }
 }

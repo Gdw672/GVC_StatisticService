@@ -10,12 +10,13 @@ namespace GVC_StatisticService.Service
 {
     public class ReadCsvService : IReadCsvService
     {
-        private string pathToCsv = "C:\\Practice\\Csv\\declarate.csv";
+        private readonly string filePathCsv = Path.Combine(AppContext.BaseDirectory, "CsvFiles");
 
-        //ToDo: сделать парсинг типов данных (пока что все string).
-        public List<ReportBase> ReadCsv()
+        public List<ReportBase> ReadCsvByName(string fileName, DateTime yesterday)
         {
-            using var reader = new StreamReader(pathToCsv);
+            var fullPath = Path.Combine(filePathCsv, fileName);
+
+            using var reader = new StreamReader(fullPath);
             using var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture);
 
             csvReader.Context.RegisterClassMap<ReportBaseMap>();
@@ -24,7 +25,7 @@ namespace GVC_StatisticService.Service
 
             foreach (var record in records)
             {
-                if(record.Вр__создания_обращения.HasValue)
+                if (record.Вр__создания_обращения.HasValue)
                 {
                     record.Вр__создания_обращения = DateTime.SpecifyKind(record.Вр__создания_обращения.Value, DateTimeKind.Utc);
                 }
@@ -36,9 +37,10 @@ namespace GVC_StatisticService.Service
                 {
                     record.ВРЕМЯ_ЗАКРЫТИЯ = DateTime.SpecifyKind(record.ВРЕМЯ_ЗАКРЫТИЯ.Value, DateTimeKind.Utc);
                 }
-                record.дата_отчета = DateTime.UtcNow;
+                record.дата_отчета = DateTime.SpecifyKind(yesterday, DateTimeKind.Utc);
             }
             return records;
         }
+
     }
 }

@@ -26,19 +26,13 @@ namespace GVC_StatisticService.Controllers
             this.statisticDbContext = statisticDbContext;
         }
 
-        //ToDo: сделать метод который записывет файл и сразу делает CountReport;
+        //ToDo: сделать метод который записывет файл и сразу делает CountReport; 1. - выкачка отчета. 2 - поиск последнего. 3 - парсинг даты. 4 - запись отчета в бд + счет.
         [HttpPost]
         public void GetCsvAndWriteAndCount()
         {
 
         }
 
-        [HttpPut]
-        [Route("WriteFromFile")]
-        public async Task<IActionResult> WriteFromFile()
-        {
-            return Ok(await reportDbService.WriteReports());
-        }
 
         [HttpPost]
         [Route("writeScoTypesAndServices")]

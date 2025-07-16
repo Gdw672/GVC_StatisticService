@@ -1,6 +1,9 @@
 ﻿using GVC_StatisticService.Context.Interface;
 using GVC_StatisticService.Enum;
+using GVC_StatisticService.Model.Report;
 using GVC_StatisticService.Service.Interface;
+using System.Runtime.InteropServices;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace GVC_StatisticService.Service
 {
@@ -8,17 +11,52 @@ namespace GVC_StatisticService.Service
     {
         private readonly IReadCsvService readCsvService;
         private readonly IStatisticDbContext statisticDbContext;
+        private readonly ICountReportService countReportService;
 
-        public ReportDbService(IReadCsvService readCsvService, IStatisticDbContext statisticDbContext) {
+        public ReportDbService(IReadCsvService readCsvService, IStatisticDbContext statisticDbContext, ICountReportService countReportService = null)
+        {
             this.readCsvService = readCsvService;
             this.statisticDbContext = statisticDbContext;
+            this.countReportService = countReportService;
         }
 
-        public async Task<OperationResult> WriteReports()
+        public async Task<OperationResult> WriteAndCountReportByDate()
         {
-           var reports = readCsvService.ReadCsv();
+            var yesterday = GetYesterdayDate();
 
-           return await statisticDbContext.WriteReports(reports);
+            var nameOfFile = $"{yesterday.Day.ToString("D2")}.{yesterday.Month.ToString("D2")}.{yesterday.Year}.csv";
+            var reports = ReadFileByName(nameOfFile, yesterday);
+
+            await statisticDbContext.WriteReports(reports);
+
+            var x = await countReportService.GetCountReports(yesterday);
+
+            //ToDo: убрать список, сделать обычный объект CountReport
+            statisticDbContext.AddCountReport(x.First());
+
+            return OperationResult.Ok;
+        }
+
+        private List<ReportBase> ReadFileByName(string nameOfFile, DateTime yesterday)
+        {
+           return readCsvService.ReadCsvByName(nameOfFile, yesterday);
+        }
+
+        private DateTime GetYesterdayDate()
+        {
+            DateTime utcNow = DateTime.UtcNow;
+
+            string timeZoneId = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? "Russian Standard Time"
+                : "Europe/Moscow";
+
+            TimeZoneInfo moscowTimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+
+            DateTime moscowDateTime = TimeZoneInfo.ConvertTimeFromUtc(utcNow, moscowTimeZone);
+
+            DateTime moscowDateOnly = moscowDateTime.Date;
+
+            return moscowDateOnly.AddDays(-2);
         }
     }
 }
