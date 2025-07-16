@@ -56,7 +56,7 @@ namespace GVC_StatisticService.Service
 
             DateTime moscowDateOnly = moscowDateTime.Date;
 
-            return moscowDateOnly.AddDays(-2);
+            return moscowDateOnly.AddDays(-1);
         }
     }
 }
