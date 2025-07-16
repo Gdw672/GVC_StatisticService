@@ -7,6 +7,20 @@
 </head>
 <body>
   <h3>Отчет по данным</h3>
+  
+  <!-- Поля выбора даты -->
+  <div id="dateFilters">
+    <div class="date-filter">
+      <label for="startDate">Дата начала:</label>
+      <input type="date" id="startDate" value="2025-07-15">
+    </div>
+    <div class="date-filter">
+      <label for="endDate">Дата окончания:</label>
+      <input type="date" id="endDate" value="2025-07-17">
+    </div>
+    <button id="loadDataButton">Загрузить данные</button>
+  </div>
+  
   <button id="toggleButton">Повернуть таблицу</button>
   <div id="tableContainer"></div>
 
@@ -20,15 +34,19 @@
   <!-- Подключаем модули -->
   <script src="table-manager.js"></script>
   <script src="chart-manager.js"></script>
+  
   <script>
     // Инициализация приложения
     const APP_CONFIG = {
-      apiUrl: "http://localhost:5134/api/Database/testData",
+      apiUrl: "http://localhost:5134/api/Database/getReportsByRange",
       tableContainer: "tableContainer",
       listsContainer: "listsContainer",
       chartsContainer: "chartsContainer",
       toggleButton: "toggleButton",
-      addListButton: "addListButton"
+      addListButton: "addListButton",
+      startDateInput: "startDate",
+      endDateInput: "endDate",
+      loadDataButton: "loadDataButton"
     };
 
     // Глобальное состояние приложения
@@ -37,19 +55,18 @@
       selectedParamsByList: [[]],
       selectedDates: [],
       activeListIndex: 0,
-      transposed: false,
+      transposed: true, // Стартуем в перевернутом виде
       chartsVisible: [] // массив булевых значений для видимости графиков
     };
-
-    // Инициализация модулей
-    // Инициализация модулей
+    
+      // Инициализируем 
     document.addEventListener('DOMContentLoaded', async () => {
-      // Инициализируем таблицу
       TableManager.init(APP_CONFIG);
-      
-      // Инициализируем графики и сделаем их доступными глобально
-      window.ChartManager = ChartManager;
       ChartManager.init(APP_CONFIG);
+      
+      // Автоматически инициализируем и заполняем БД
+      await TableManager.initDatabase();
+      await TableManager.fillDatabase();
       
       // Загружаем данные
       await TableManager.loadData();

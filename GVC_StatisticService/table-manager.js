@@ -13,13 +13,17 @@ const TableManager = {
       this.render();
     });
 
-    // Кнопка добавления нового графика
+    // Кнопка добавления нового списка
     document.getElementById(this.config.addListButton).addEventListener('click', () => {
       window.AppState.selectedParamsByList.push([]);
-      window.AppState.chartsVisible.push(false);
       window.AppState.activeListIndex = window.AppState.selectedParamsByList.length - 1;
       this.renderLists();
       this.render();
+    });
+
+    // Кнопка загрузки данных
+    document.getElementById(this.config.loadDataButton).addEventListener('click', () => {
+      this.loadData();
     });
   },
 
@@ -37,12 +41,51 @@ const TableManager = {
     return result;
   },
 
+  formatDateForAPI(dateString) {
+    // Конвертируем из формата YYYY-MM-DD в нужный формат
+    // Попробуем несколько вариантов
+    const date = new Date(dateString);
+    
+    // Вариант 1: ISO строка (2025-07-15T00:00:00.000Z)
+    // return date.toISOString();
+    
+    // Вариант 2: Простой формат YYYY-MM-DD
+    return dateString;
+    
+    // Вариант 3: Дата + время
+    // return dateString + "T00:00:00";
+  },
+
   async loadData() {
     try {
-      const response = await fetch(this.config.apiUrl);
+      const startDate = document.getElementById(this.config.startDateInput).value;
+      const endDate = document.getElementById(this.config.endDateInput).value;
+      
+      // Форматируем даты для API
+      const formattedStartDate = this.formatDateForAPI(startDate);
+      const formattedEndDate = this.formatDateForAPI(endDate);
+      
+      // Строим URL с параметрами
+      const url = new URL(this.config.apiUrl);
+      url.searchParams.append('startDate', formattedStartDate);
+      url.searchParams.append('endDate', formattedEndDate);
+      
+      console.log("Запрос к URL:", url.toString());
+      console.log("Параметры:", {
+        startDate: formattedStartDate,
+        endDate: formattedEndDate
+      });
+      
+      const response = await fetch(url.toString());
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log("Получены данные:", data);
+      
       window.AppState.originalData = data;
-      window.AppState.chartsVisible = [false];
       window.AppState.selectedParamsByList = [[]];
       window.AppState.selectedDates = [];
       window.AppState.activeListIndex = 0;
@@ -50,6 +93,7 @@ const TableManager = {
       this.renderLists();
     } catch (error) {
       console.error("Ошибка загрузки данных:", error);
+      alert("Ошибка загрузки данных: " + error.message);
     }
   },
 
@@ -63,10 +107,6 @@ const TableManager = {
     }
     this.renderLists();
     this.render();
-    
-    if (window.ChartManager && window.AppState.chartsVisible[window.AppState.activeListIndex]) {
-      window.ChartManager.renderChart(window.AppState.activeListIndex);
-    }
   },
 
   toggleDate(rawDate) {
@@ -79,14 +119,6 @@ const TableManager = {
     }
     window.AppState.selectedDates.sort((a, b) => new Date(a) - new Date(b));
     this.render();
-    
-    if (window.ChartManager) {
-      window.AppState.chartsVisible.forEach((visible, index) => {
-        if (visible) {
-          window.ChartManager.renderChart(index);
-        }
-      });
-    }
   },
 
   renderLists() {
@@ -99,7 +131,7 @@ const TableManager = {
       if (index === window.AppState.activeListIndex) block.classList.add("active");
 
       const content = document.createElement("div");
-      content.innerHTML = "<strong>График " + (index + 1) + ":</strong> ";
+      content.innerHTML = "<strong>Список " + (index + 1) + ":</strong> ";
       
       params.forEach(p => {
         const tag = document.createElement("span");
@@ -107,17 +139,6 @@ const TableManager = {
         tag.innerText = p;
         content.appendChild(tag);
       });
-
-      const showChartButton = document.createElement("button");
-      showChartButton.className = "showChartButton";
-      showChartButton.innerText = window.AppState.chartsVisible[index] ? "Обновить график" : "Показать график";
-      showChartButton.addEventListener("click", (e) => {
-        e.stopPropagation();
-        window.AppState.chartsVisible[index] = true;
-        window.ChartManager.renderChart(index);
-        this.renderLists();
-      });
-      content.appendChild(showChartButton);
 
       block.appendChild(content);
 
