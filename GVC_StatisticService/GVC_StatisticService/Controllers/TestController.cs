@@ -18,7 +18,7 @@ namespace GVC_StatisticService.Controllers
         [Route("writeAndCountReportByLastDate")]
         public async Task<IActionResult> GetDate()
         {
-            return Ok( await reportDbService.WriteAndCountReportByDate());
+            return Ok( await reportDbService.WriteAndCountReportByYesterday());
         }
     }
 }
