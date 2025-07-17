@@ -1,176 +1,448 @@
-body {
-      font-family: sans-serif;
-      margin: 20px;
+* {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin-top: 10px;
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f8f9fa;
+      color: #2d3748;
+      line-height: 1.6;
+      font-weight: 400;
+      padding-top: 88px;
     }
 
-    th, td {
-      border: 1px solid #aaa;
-      padding: 6px;
-      text-align: center;
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
     }
 
-    th {
-      background-color: #eee;
-      cursor: pointer;
-    }
-
-    .metric:hover {
-      background-color: #cceeff;
-    }
-
-    .metric:active {
-      background-color: #aaddff;
-    }
-
-    .selected {
-      background-color: #d7f0ff !important;
-      outline: 2px solid #007acc;
-    }
-
-    #toggleButton {
-      margin-top: 10px;
-      float: right;
-    }
-
-    #listsContainer {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .listBlock {
-      border: 1px solid #aaa;
-      padding: 10px;
-      min-height: 40px;
-      background: #f9f9f9;
-      cursor: pointer;
-    }
-
-    .listBlock.active {
-      background: #e0f7ff;
-      border: 2px solid #007acc;
-    }
-
-    #addListButton {
-      margin-top: 10px;
-      padding: 5px 10px;
-      font-size: 14px;
-    }
-
-    th.selected, td.selected {
-      background-color: #007acc !important;
-      color: white;
-      font-weight: bold;
-      border: 2px solid #005f99;
-    }
-
-    .tag {
-      background-color: #007acc;
-      color: white;
-      padding: 3px 8px;
-      border-radius: 10px;
-      font-size: 13px;
-    }
-
-    .showChartButton {
-      background-color: #28a745;
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 12px;
-      margin-left: 10px;
-    }
-
-    .showChartButton:hover {
-      background-color: #218838;
-    }
-
-    .chartContainer {
-      margin-top: 15px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 15px;
+    .header {
       background: white;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 24px 0;
+      margin-bottom: 32px;
+      position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  transform: translateY(0);
+  transition: transform 0.3s ease;
     }
 
-    .chartHeader {
+    body.scrolled .header:hover,
+body.scrolled .header:focus-within {
+  transform: translateY(0);
+}
+
+
+    body.scrolled .header {
+  transform: translateY(-100%);
+}
+
+
+/* Стили для тегов */
+.tag {
+ display: inline-block;
+ background: linear-gradient(135deg, #4299e1, #3182ce);
+ color: white;
+ padding: 4px 8px;
+ margin: 2px 4px 2px 0;
+ border-radius: 4px;
+ font-size: 12px;
+ font-weight: 500;
+ white-space: nowrap;
+ box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Контейнер для тегов с переносом */
+.listContent {
+ display: flex;
+ flex-wrap: wrap;
+ align-items: center;
+ gap: 4px;
+ word-break: break-word;
+ overflow-wrap: break-word;
+}
+
+.listContent strong {
+ flex-shrink: 0;
+ margin-right: 8px;
+}
+
+/* Блок списка с корректной компоновкой */
+.listBlock {
+ display: flex;
+ flex-direction: column;
+ gap: 8px;
+}
+
+.listButtons {
+ display: flex;
+ gap: 8px;
+ flex-wrap: wrap;
+}
+
+    
+
+       .selected {
+      background-color: white !important;
+      outline: 2px solid #4299e1;
+    }
+
+        th.selected, td.selected {
+      background-color: #4299e1 !important;
+      color: white !important;
+      font-weight: bold;
+    }
+
+    
+    .settingsGroup input, .settingsGroup select {
+      padding: 4px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+
+    .settingsGroup select, .settingsGroup input {
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  width: 150px;
+}
+
+
+    .header-content {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
     }
 
-    .chartTitle {
-      font-weight: bold;
-      font-size: 16px;
-    }
 
-    .closeChartButton {
-      background-color: #dc3545;
+    .export-button {
+      background: #e53e3e;
       color: white;
       border: none;
-      padding: 3px 8px;
-      border-radius: 3px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
       cursor: pointer;
-      font-size: 11px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .closeChartButton:hover {
-      background-color: #c82333;
+    .export-button:hover {
+      background: #c53030;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
     }
 
-    .chartPlot {
+    .filters-section {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .date-filters {
+      display: flex;
+      gap: 20px;
+      align-items: end;
+      flex-wrap: wrap;
+    }
+
+    .date-filter {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .date-filter label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #4a5568;
+    }
+
+    .date-filter input {
+      padding: 10px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s ease;
+      font-family: inherit;
+    }
+
+    .date-filter input:focus {
+      outline: none;
+      border-color: #e53e3e;
+    }
+
+    .load-data-button {
+      background: #4299e1;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      height: fit-content;
+    }
+
+    .load-data-button:hover {
+      background: #3182ce;
+      transform: translateY(-1px);
+    }
+
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 32px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1a202c;
+      margin: 0;
+    }
+
+    .toggle-button {
+      background: #f7fafc;
+      color: #4a5568;
+      border: 2px solid #e2e8f0;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .toggle-button:hover {
+      background: #edf2f7;
+      border-color: #cbd5e0;
+    }
+
+    .add-button {
+      background: linear-gradient(135deg, #48bb78, #38a169);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .add-button:hover {
+      background: linear-gradient(135deg, #38a169, #2f855a);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+    }
+
+    .add-button::before {
+      content: '+';
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .table-container table {
       width: 100%;
-      height: 400px;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    .table-container th,
+    .table-container td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .table-container th {
+      background: #f7fafc;
+      font-weight: 600;
+      color: #2d3748;
+      font-size: 14px;
+    }
+
+    .table-container td {
+      font-size: 14px;
+      color: #4a5568;
+    }
+
+    .table-container tr:hover {
+      background: #f7fafc;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .chart-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e2e8f0;
+    }
+
+    .chart-card h5 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a202c;
+      margin-bottom: 16px;
+    }
+
+    .lists-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .list-item {
+      background: #f7fafc;
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid #e2e8f0;
     }
 
 
-    .chartContainer {
-  width: 100%;
-  min-height: 400px;
-  margin: 20px 0;
-  border: 1px solid #ccc;
-  padding: 10px;
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-active {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+
+    .status-pending {
+      background: #fef5e7;
+      color: #744210;
+    }
+
+    .status-completed {
+      background: #bee3f8;
+      color: #1a365d;
+    }
+
+/* Обновленный responsive блок - заменить существующий */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .header h1 {
+    font-size: 24px;
+    text-align: center;
+  }
+  
+  .export-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .date-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .section {
+    padding: 16px;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
 }
-.chartHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+
+/* Дополнительные стили для очень маленьких экранов */
+@media (max-width: 480px) {
+  .header h1 {
+    font-size: 20px;
+  }
+  
+  .container {
+    padding: 0 16px;
+  }
+  
+  .header {
+    padding: 16px 0;
+  }
 }
-.chartTitle {
-  font-size: 1.2em;
-  font-weight: bold;
-}
-.closeChartButton {
-  cursor: pointer;
-}
-.chartCanvas {
-  width: 100%;
-  height: 400px;
-}
-.chartSettings {
-  margin: 10px 0;
-  padding: 10px;
-  border: 1px solid #e0e0e0;
-  background: #f9f9f9;
-}
-.settingsGroup {
-  margin-bottom: 10px;
-}
-.settingsGroup label {
-  margin-right: 10px;
-}
-.applySettings {
-  margin-top: 10px;
-  padding: 5px 10px;
-  cursor: pointer;
-}
+
+    /* Анимации */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .section {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    /* Улучшенные скроллбары */
+    .table-container::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .table-container::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb {
+      background: #cbd5e0;
+      border-radius: 4px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb:hover {
+      background: #a0aec0;
+    }
+
+    /* Resizable секция таблицы */

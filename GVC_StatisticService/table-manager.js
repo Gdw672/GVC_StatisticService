@@ -4,7 +4,14 @@ const TableManager = {
   init(config) {
     this.config = config;
     this.setupEventListeners();
+    
+    // Инициализируем настройки графиков
+    if (!window.AppState.chartSettings) {
+      window.AppState.chartSettings = [];
+    }
   },
+
+  
 
   setupEventListeners() {
     // Кнопка поворота таблицы
@@ -17,6 +24,12 @@ const TableManager = {
     document.getElementById(this.config.addListButton).addEventListener('click', () => {
       window.AppState.selectedParamsByList.push([]);
       window.AppState.activeListIndex = window.AppState.selectedParamsByList.length - 1;
+      
+      // Синхронизируем состояние графиков
+      while (window.AppState.chartsVisible.length < window.AppState.selectedParamsByList.length) {
+        window.AppState.chartsVisible.push(false);
+      }
+      
       this.renderLists();
       this.render();
     });
@@ -42,18 +55,7 @@ const TableManager = {
   },
 
   formatDateForAPI(dateString) {
-    // Конвертируем из формата YYYY-MM-DD в нужный формат
-    // Попробуем несколько вариантов
-    const date = new Date(dateString);
-    
-    // Вариант 1: ISO строка (2025-07-15T00:00:00.000Z)
-    // return date.toISOString();
-    
-    // Вариант 2: Простой формат YYYY-MM-DD
     return dateString;
-    
-    // Вариант 3: Дата + время
-    // return dateString + "T00:00:00";
   },
 
   async loadData() {
@@ -61,20 +63,14 @@ const TableManager = {
       const startDate = document.getElementById(this.config.startDateInput).value;
       const endDate = document.getElementById(this.config.endDateInput).value;
       
-      // Форматируем даты для API
       const formattedStartDate = this.formatDateForAPI(startDate);
       const formattedEndDate = this.formatDateForAPI(endDate);
       
-      // Строим URL с параметрами
       const url = new URL(this.config.apiUrl);
       url.searchParams.append('startDate', formattedStartDate);
       url.searchParams.append('endDate', formattedEndDate);
       
       console.log("Запрос к URL:", url.toString());
-      console.log("Параметры:", {
-        startDate: formattedStartDate,
-        endDate: formattedEndDate
-      });
       
       const response = await fetch(url.toString());
       
@@ -89,6 +85,8 @@ const TableManager = {
       window.AppState.selectedParamsByList = [[]];
       window.AppState.selectedDates = [];
       window.AppState.activeListIndex = 0;
+      window.AppState.chartsVisible = [false]; // Сбрасываем состояние графиков
+      
       this.render();
       this.renderLists();
     } catch (error) {
@@ -125,12 +123,18 @@ const TableManager = {
     const container = document.getElementById(this.config.listsContainer);
     container.innerHTML = "";
     
+    // Синхронизируем состояние графиков с количеством списков
+    while (window.AppState.chartsVisible.length < window.AppState.selectedParamsByList.length) {
+      window.AppState.chartsVisible.push(false);
+    }
+    
     window.AppState.selectedParamsByList.forEach((params, index) => {
       const block = document.createElement("div");
       block.className = "listBlock";
       if (index === window.AppState.activeListIndex) block.classList.add("active");
 
       const content = document.createElement("div");
+      content.className = "listContent";
       content.innerHTML = "<strong>Список " + (index + 1) + ":</strong> ";
       
       params.forEach(p => {
@@ -140,7 +144,41 @@ const TableManager = {
         content.appendChild(tag);
       });
 
+      // Создаем контейнер для кнопок
+      const buttonsContainer = document.createElement("div");
+      buttonsContainer.className = "listButtons";
+
+      // Кнопка показа/скрытия графика
+      const chartButton = document.createElement("button");
+      chartButton.className = "chartButton";
+      
+      const isChartVisible = window.AppState.chartsVisible[index];
+      chartButton.innerText = isChartVisible ? "Скрыть график" : "Показать график";
+      chartButton.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (isChartVisible) {
+          window.ChartManager.closeChart(index);
+        } else {
+          window.ChartManager.showChart(index);
+        }
+      });
+
+      // Кнопка удаления списка (показываем только если списков больше 1)
+      if (window.AppState.selectedParamsByList.length > 1) {
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "deleteButton";
+        deleteButton.innerText = "Удалить";
+        deleteButton.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.deleteList(index);
+        });
+        buttonsContainer.appendChild(deleteButton);
+      }
+
+      buttonsContainer.appendChild(chartButton);
+      
       block.appendChild(content);
+      block.appendChild(buttonsContainer);
 
       block.addEventListener("click", () => {
         window.AppState.activeListIndex = index;
@@ -290,5 +328,33 @@ const TableManager = {
 
   getRawData() {
     return window.AppState.originalData;
+  },
+
+  deleteList(index) {
+    if (window.AppState.selectedParamsByList.length <= 1) {
+      alert("Нельзя удалить последний список!");
+      return;
+    }
+    
+    // Закрываем график если он открыт
+    if (window.AppState.chartsVisible && window.AppState.chartsVisible[index]) {
+      window.ChartManager.closeChart(index);
+    }
+    
+    // Удаляем список
+    window.AppState.selectedParamsByList.splice(index, 1);
+    
+    // Удаляем состояние графика
+    if (window.AppState.chartsVisible) {
+      window.AppState.chartsVisible.splice(index, 1);
+    }
+    
+    // Корректируем активный индекс
+    if (window.AppState.activeListIndex >= index) {
+      window.AppState.activeListIndex = Math.max(0, window.AppState.activeListIndex - 1);
+    }
+
+    this.renderLists();
+    this.render();
   }
 };
