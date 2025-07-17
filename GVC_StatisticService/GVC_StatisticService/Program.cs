@@ -69,7 +69,7 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
 var cronSchedule = builder.Configuration["Python:ExecutionCron"];
 RecurringJob.AddOrUpdate<IPythonRunnerService>(
     "python-script-job",
-    service => service.RunScriptAsync(),
+    service => service.RunDailyDownloadReport(),
     cronSchedule,
     new RecurringJobOptions
     {

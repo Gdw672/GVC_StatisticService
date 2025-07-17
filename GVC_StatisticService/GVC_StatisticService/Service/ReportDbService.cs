@@ -20,7 +20,7 @@ namespace GVC_StatisticService.Service
             this.countReportService = countReportService;
         }
 
-        public async Task<OperationResult> WriteAndCountReportByDate()
+        public async Task<OperationResult> WriteAndCountReportByYesterday()
         {
             var yesterday = GetYesterdayDate();
 
@@ -37,12 +37,27 @@ namespace GVC_StatisticService.Service
             return OperationResult.Ok;
         }
 
+        public async Task<OperationResult> WriteAndCountReportByDate(DateTime dateTime)
+        {
+            var nameOfFile = $"{dateTime.Day.ToString("D2")}.{dateTime.Month.ToString("D2")}.{dateTime.Year}.csv";
+            var reports = ReadFileByName(nameOfFile, dateTime);
+
+            await statisticDbContext.WriteReports(reports);
+
+            var x = await countReportService.GetCountReports(dateTime);
+
+            //ToDo: убрать список, сделать обычный объект CountReport
+            statisticDbContext.AddCountReport(x.First());
+
+            return OperationResult.Ok;
+        }
+
         private List<ReportBase> ReadFileByName(string nameOfFile, DateTime yesterday)
         {
            return readCsvService.ReadCsvByName(nameOfFile, yesterday);
         }
 
-        private DateTime GetYesterdayDate()
+        public DateTime GetYesterdayDate()
         {
             DateTime utcNow = DateTime.UtcNow;
 

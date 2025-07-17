@@ -15,24 +15,27 @@ namespace GVC_StatisticService.Controllers
         private readonly IReportDbService reportDbService;
         private readonly ICountReportService countReportService;
         private readonly ITxtReadService txtReadService;
+        private readonly IPythonRunnerService pythonRunnerService;
 
         private readonly IStatisticDbContext statisticDbContext;
-        public DatabaseController(IReadCsvService readCsvService, IReportDbService reportDbService, ICountReportService countReportService, ITxtReadService txtReadService, IStatisticDbContext statisticDbContext) 
+        public DatabaseController(IReadCsvService readCsvService, IReportDbService reportDbService, ICountReportService countReportService, ITxtReadService txtReadService, IStatisticDbContext statisticDbContext, IPythonRunnerService pythonRunnerService) 
         { 
             this.readCsvService = readCsvService;
             this.reportDbService = reportDbService;
             this.countReportService = countReportService;
             this.txtReadService = txtReadService;
             this.statisticDbContext = statisticDbContext;
+            this.pythonRunnerService = pythonRunnerService;
         }
 
-        //ToDo: сделать метод который записывет файл и сразу делает CountReport; 1. - выкачка отчета. 2 - поиск последнего. 3 - парсинг даты. 4 - запись отчета в бд + счет.
+
+
         [HttpPost]
-        public void GetCsvAndWriteAndCount()
+        [Route("downloadReportByDate")]
+        public async Task<IActionResult> DownloadReportByDate(DateTime dateTime)
         {
-
+          return Ok(await pythonRunnerService.RunDownloadReportForConcreteDate(dateTime));
         }
-
 
         [HttpPost]
         [Route("writeScoTypesAndServices")]
@@ -58,13 +61,6 @@ namespace GVC_StatisticService.Controllers
         {
 
             return Ok(await countReportService.GetCountReports(DateTime.SpecifyKind(new DateTime(2025, 7, 15), DateTimeKind.Utc)));
-        }
-
-        [HttpGet]
-        [Route("testData")]
-        public IActionResult getTestData()
-        {
-            return Ok(countReportService.GetTestData());
         }
     }
 }
