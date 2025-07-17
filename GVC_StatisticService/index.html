@@ -6,36 +6,74 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h3>Отчет по данным</h3>
-  
-  <!-- Поля выбора даты -->
-  <div id="dateFilters">
-    <div class="date-filter">
-      <label for="startDate">Дата начала:</label>
-      <input type="date" id="startDate" value="2025-07-15">
+  <div class="header">
+    <div class="container">
+      <div class="header-content">
+        <h1>Отчет по данным</h1>
+        <button id="exportReportButton" class="export-button">
+          Выгрузить полный отчет
+        </button>
+      </div>
     </div>
-    <div class="date-filter">
-      <label for="endDate">Дата окончания:</label>
-      <input type="date" id="endDate" value="2025-07-17">
-    </div>
-    <button id="loadDataButton">Загрузить данные</button>
   </div>
-  
-  <button id="toggleButton">Повернуть таблицу</button>
-  <div id="tableContainer"></div>
 
-  <h4>График по тегам</h4>
-  <div id="listsContainer"></div>
-  <button id="addListButton">+ Добавить новый график</button>
+  <div class="container">
 
-  <h4>Графики</h4>
-  <div id="chartsContainer"></div>
+    <div class="filters-section">
+      <div id="dateFilters" class="date-filters">
+        <div class="date-filter">
+          <label for="startDate">Дата начала:</label>
+          <input type="date" id="startDate" value="2025-07-15">
+        </div>
+        <div class="date-filter">
+          <label for="endDate">Дата окончания:</label>
+          <input type="date" id="endDate" value="2025-07-18">
+        </div>
+        <button id="loadDataButton" class="load-data-button">Загрузить данные</button>
+      </div>
+    </div>
+    
+    <div class="section table-section">
+  <div class="section-header">
+    <h2 class="section-title">Таблица данных</h2>
+    <button id="toggleButton" class="toggle-button">Повернуть таблицу</button>
+  </div>
+  <div id="tableContainer" class="table-container"></div>
+  <div class="resize-handle-right"></div>
+</div>
+
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">График по тегам</h2>
+        <button id="addListButton" class="add-button">Добавить новый график</button>
+      </div>
+      <div id="listsContainer" class="lists-container"></div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">Графики</h2>
+      <div id="chartsContainer" class="charts-grid"></div>
+    </div>
+  </div>
 
   <!-- Подключаем модули -->
   <script src="table-manager.js"></script>
   <script src="chart-manager.js"></script>
   
   <script>
+
+    // Добавить в конец существующего script блока
+let lastScrollTop = 0;
+window.addEventListener('scroll', () => {
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  if (scrollTop > 50) { // Скрываем после прокрутки на 50px
+    document.body.classList.add('scrolled');
+  } else {
+    document.body.classList.remove('scrolled');
+  }
+  lastScrollTop = scrollTop;
+});
+
     // Инициализация приложения
     const APP_CONFIG = {
       apiUrl: "http://localhost:5134/api/Database/getReportsByRange",
@@ -59,14 +97,14 @@
       chartsVisible: [] // массив булевых значений для видимости графиков
     };
     
-      // Инициализируем 
+    // Инициализируем менеджеры
     document.addEventListener('DOMContentLoaded', async () => {
+      // Делаем менеджеры доступными глобально
+      window.TableManager = TableManager;
+      window.ChartManager = ChartManager;
+      
       TableManager.init(APP_CONFIG);
       ChartManager.init(APP_CONFIG);
-      
-      // Автоматически инициализируем и заполняем БД
-      await TableManager.initDatabase();
-      await TableManager.fillDatabase();
       
       // Загружаем данные
       await TableManager.loadData();
