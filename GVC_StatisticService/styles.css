@@ -34,6 +34,26 @@
             transition: transform 0.3s ease;
         }
 
+        .sliderH, .sliderV {
+          width: 100px;
+
+
+        }
+
+        .section-slider {
+          display: flex;
+            flex-direction: column;  /* Ориентация слайдеров вертикально */
+            margin-top: -5px;
+          
+        }
+
+        
+        .section-name-header {
+            display: flex;
+            justify-content: center;  /* Выравнивание по центру */
+            align-items: center;  /* Выравнивание по горизонтали */
+        }
+
         body.scrolled .header {
             transform: translateY(-100%);
         }
@@ -132,6 +152,21 @@
             height: fit-content;
         }
 
+        .load-data-button2 {
+            background: #f51e33de;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            height: fit-content;
+        }
+
+        
+
         .load-data-button:hover {
             background: #3182ce;
             transform: translateY(-1px);
@@ -152,7 +187,10 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            align-items: flex-start;
+            margin-bottom: 0px;
         }
+
 
         .section-title {
             font-size: 20px;
@@ -172,6 +210,9 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
+            float: right;
+
+            margin-left: 10px;
         }
 
         .toggle-button:hover {
@@ -264,10 +305,15 @@
 
         .table-container table {
             width: 100%;
+            line-height: 0.1;
             border-collapse: collapse;
             background: white;
-            min-width: 500px; /* Минимальная ширина для горизонтального скролла */
+            min-width: 500px;
+            transition: width 0.2s ease-in-out;
+            
         }
+
+
 
         .table-container th,
         .table-container td {
@@ -362,12 +408,48 @@
             flex-direction: column;
             gap: 8px;
         }
+        .active {
+          background-color: #f3f3f3;
+          border: #f3f3f3 10px solid;
+          color: rgb(0, 0, 0);
+          border-radius: 10px;
+
+        }
+
+        .lists-container {
+          color:rgb(208, 208, 208);
+          border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+  
+.deleteButton, .chartButton {
+  background: none; /* Цвет фона кнопок */
+  border: #cdcdcd 2px solid;
+  padding: 2px; /* Вы можете увеличить/уменьшить padding для регулировки размера */
+  cursor: pointer;
+  font-size: 16px; /* Можно сделать одинаковым для обеих кнопок */
+  border-radius: 20%; /* Скругление кнопок в круг */
+  width: 30px; /* одинаковая ширина */
+  height: 30px; /* одинаковая высота */
+}
+
+    .section-header {
+      display: flex;
+      gap: 5px;
+
+      margin-bottom: 5px;
+    }
+
+        
 
         .listButtons {
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
         }
+       
 
         /* Settings */
         .settingsGroup input, .settingsGroup select {
@@ -400,12 +482,7 @@
             margin-bottom: 16px;
         }
 
-        /* Lists */
-        .lists-container {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
+  
 
         .list-item {
             background: #f7fafc;
@@ -496,6 +573,11 @@
             }
 
             .date-filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .date-filter-download {
                 flex-direction: column;
                 align-items: stretch;
             }

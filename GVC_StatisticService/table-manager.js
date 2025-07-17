@@ -9,9 +9,12 @@ const TableManager = {
     if (!window.AppState.chartSettings) {
       window.AppState.chartSettings = [];
     }
+    
+    // Инициализируем диапазоны дат для каждого списка
+    if (!window.AppState.dateRangesByList) {
+      window.AppState.dateRangesByList = [{ startDate: '', endDate: '' }];
+    }
   },
-
-  
 
   setupEventListeners() {
     // Кнопка поворота таблицы
@@ -24,6 +27,9 @@ const TableManager = {
     document.getElementById(this.config.addListButton).addEventListener('click', () => {
       window.AppState.selectedParamsByList.push([]);
       window.AppState.activeListIndex = window.AppState.selectedParamsByList.length - 1;
+      
+      // Добавляем новый диапазон дат для нового списка
+      window.AppState.dateRangesByList.push({ startDate: '', endDate: '' });
       
       // Синхронизируем состояние графиков
       while (window.AppState.chartsVisible.length < window.AppState.selectedParamsByList.length) {
@@ -85,7 +91,8 @@ const TableManager = {
       window.AppState.selectedParamsByList = [[]];
       window.AppState.selectedDates = [];
       window.AppState.activeListIndex = 0;
-      window.AppState.chartsVisible = [false]; // Сбрасываем состояние графиков
+      window.AppState.chartsVisible = [false];
+      window.AppState.dateRangesByList = [{ startDate: '', endDate: '' }];
       
       this.render();
       this.renderLists();
@@ -107,16 +114,33 @@ const TableManager = {
     this.render();
   },
 
-  toggleDate(rawDate) {
-    const timestamp = new Date(rawDate).getTime();
-    const index = window.AppState.selectedDates.findIndex(d => new Date(d).getTime() === timestamp);
-    if (index >= 0) {
-      window.AppState.selectedDates.splice(index, 1);
-    } else {
-      window.AppState.selectedDates.push(rawDate);
+  // Убираем метод toggleDate, так как теперь используем диапазоны
+  
+  updateDateRange(listIndex, startDate, endDate) {
+    window.AppState.dateRangesByList[listIndex] = { startDate, endDate };
+    
+    // Если это активный список, обновляем отображение
+    if (listIndex === window.AppState.activeListIndex) {
+      this.render();
     }
-    window.AppState.selectedDates.sort((a, b) => new Date(a) - new Date(b));
-    this.render();
+  },
+
+  getSelectedDatesForList(listIndex) {
+    const dateRange = window.AppState.dateRangesByList[listIndex];
+    if (!dateRange || !dateRange.startDate || !dateRange.endDate) {
+      return [];
+    }
+
+    const startDate = new Date(dateRange.startDate);
+    const endDate = new Date(dateRange.endDate);
+    
+    return window.AppState.originalData
+      .map(entry => entry.дата_отчета)
+      .filter(date => {
+        const entryDate = new Date(date);
+        return entryDate >= startDate && entryDate <= endDate;
+      })
+      .sort((a, b) => new Date(a) - new Date(b));
   },
 
   renderLists() {
@@ -128,14 +152,24 @@ const TableManager = {
       window.AppState.chartsVisible.push(false);
     }
     
+    // Синхронизируем диапазоны дат с количеством списков
+    while (window.AppState.dateRangesByList.length < window.AppState.selectedParamsByList.length) {
+      window.AppState.dateRangesByList.push({ startDate: '', endDate: '' });
+    }
+    
     window.AppState.selectedParamsByList.forEach((params, index) => {
       const block = document.createElement("div");
       block.className = "listBlock";
       if (index === window.AppState.activeListIndex) block.classList.add("active");
 
+      // Заголовок списка
+      const header = document.createElement("div");
+      header.className = "listHeader";
+      header.innerHTML = "<strong>Список " + (index + 1) + ":</strong>";
+      
+      // Контейнер для параметров
       const content = document.createElement("div");
       content.className = "listContent";
-      content.innerHTML = "<strong>Список " + (index + 1) + ":</strong> ";
       
       params.forEach(p => {
         const tag = document.createElement("span");
@@ -143,6 +177,43 @@ const TableManager = {
         tag.innerText = p;
         content.appendChild(tag);
       });
+
+      // Контейнер для выбора дат
+      const dateFilters = document.createElement("div");
+      dateFilters.className = "listDateFilters";
+      
+      const dateRange = window.AppState.dateRangesByList[index];
+      
+      // Поле начальной даты
+      const startDateContainer = document.createElement("div");
+      startDateContainer.className = "date-filter-small";
+      const startLabel = document.createElement("label");
+      startLabel.innerText = "От:";
+      const startInput = document.createElement("input");
+      startInput.type = "date";
+      startInput.value = dateRange.startDate || '';
+      startInput.addEventListener('change', (e) => {
+        this.updateDateRange(index, e.target.value, dateRange.endDate);
+      });
+      startDateContainer.appendChild(startLabel);
+      startDateContainer.appendChild(startInput);
+      
+      // Поле конечной даты
+      const endDateContainer = document.createElement("div");
+      endDateContainer.className = "date-filter-small";
+      const endLabel = document.createElement("label");
+      endLabel.innerText = "До:";
+      const endInput = document.createElement("input");
+      endInput.type = "date";
+      endInput.value = dateRange.endDate || '';
+      endInput.addEventListener('change', (e) => {
+        this.updateDateRange(index, dateRange.startDate, e.target.value);
+      });
+      endDateContainer.appendChild(endLabel);
+      endDateContainer.appendChild(endInput);
+      
+      dateFilters.appendChild(startDateContainer);
+      dateFilters.appendChild(endDateContainer);
 
       // Создаем контейнер для кнопок
       const buttonsContainer = document.createElement("div");
@@ -153,7 +224,7 @@ const TableManager = {
       chartButton.className = "chartButton";
       
       const isChartVisible = window.AppState.chartsVisible[index];
-      chartButton.innerText = isChartVisible ? "Скрыть график" : "Показать график";
+      chartButton.innerText = isChartVisible ? "⭮" : "⭮";
       chartButton.addEventListener("click", (e) => {
         e.stopPropagation();
         if (isChartVisible) {
@@ -167,7 +238,7 @@ const TableManager = {
       if (window.AppState.selectedParamsByList.length > 1) {
         const deleteButton = document.createElement("button");
         deleteButton.className = "deleteButton";
-        deleteButton.innerText = "Удалить";
+        deleteButton.innerText = "✖";
         deleteButton.addEventListener("click", (e) => {
           e.stopPropagation();
           this.deleteList(index);
@@ -177,7 +248,9 @@ const TableManager = {
 
       buttonsContainer.appendChild(chartButton);
       
+      block.appendChild(header);
       block.appendChild(content);
+      block.appendChild(dateFilters);
       block.appendChild(buttonsContainer);
 
       block.addEventListener("click", () => {
@@ -197,13 +270,23 @@ const TableManager = {
     const formattedData = window.AppState.originalData.map(this.formatEntry);
     if (formattedData.length === 0) return;
 
+    // Фильтруем данные по диапазону дат активного списка
+    const activeListDates = this.getSelectedDatesForList(window.AppState.activeListIndex);
+    const filteredData = activeListDates.length > 0 
+      ? formattedData.filter(entry => 
+          activeListDates.some(date => 
+            new Date(date).getTime() === entry.дата_отчета_raw.getTime()
+          )
+        )
+      : formattedData;
+
     const fields = Object.keys(formattedData[0]).filter(f => f !== "id" && f !== "дата_отчета_raw");
     const table = document.createElement("table");
 
     if (!window.AppState.transposed) {
-      this.renderNormalTable(table, formattedData, fields);
+      this.renderNormalTable(table, filteredData, fields);
     } else {
-      this.renderTransposedTable(table, formattedData, fields);
+      this.renderTransposedTable(table, filteredData, fields);
     }
 
     container.appendChild(table);
@@ -234,13 +317,6 @@ const TableManager = {
 
       const dateCell = document.createElement("td");
       dateCell.innerText = entry.дата_отчета;
-      const isSelected = window.AppState.selectedDates.some(
-        d => new Date(d).getTime() === entry.дата_отчета_raw.getTime()
-      );
-      if (isSelected) {
-        dateCell.classList.add("selected");
-      }
-      dateCell.addEventListener("click", () => this.toggleDate(entry.дата_отчета_raw));
       row.appendChild(dateCell);
 
       fields.filter(f => f !== "дата_отчета").forEach(field => {
@@ -264,11 +340,6 @@ const TableManager = {
     sortedDates.forEach(entry => {
       const th = document.createElement("th");
       th.innerText = entry.дата_отчета;
-      const isSelected = window.AppState.selectedDates.some(
-        d => new Date(d).getTime() === entry.дата_отчета_raw.getTime()
-      );
-      if (isSelected) th.classList.add("selected");
-      th.addEventListener("click", () => this.toggleDate(entry.дата_отчета_raw));
       headerRow.appendChild(th);
     });
 
@@ -300,17 +371,7 @@ const TableManager = {
 
   getSortedData(formattedData) {
     const sortedData = [...formattedData];
-    const priority = window.AppState.selectedDates.map(d => new Date(d).toLocaleDateString("ru-RU"));
-    
-    sortedData.sort((a, b) => {
-      const ia = priority.indexOf(a.дата_отчета);
-      const ib = priority.indexOf(b.дата_отчета);
-      if (ia >= 0 && ib >= 0) return ia - ib;
-      if (ia >= 0) return -1;
-      if (ib >= 0) return 1;
-      return new Date(b.дата_отчета_raw) - new Date(a.дата_отчета_raw);
-    });
-    
+    sortedData.sort((a, b) => new Date(a.дата_отчета_raw) - new Date(b.дата_отчета_raw));
     return sortedData;
   },
 
@@ -319,7 +380,13 @@ const TableManager = {
   },
 
   getSelectedDates() {
-    return window.AppState.selectedDates;
+    // Возвращаем даты для активного списка на основе диапазона
+    return this.getSelectedDatesForList(window.AppState.activeListIndex);
+  },
+
+  // Новый метод для получения дат конкретного списка (для графиков)
+  getSelectedDatesForChart(listIndex) {
+    return this.getSelectedDatesForList(listIndex);
   },
 
   getFormattedData() {
@@ -343,6 +410,9 @@ const TableManager = {
     
     // Удаляем список
     window.AppState.selectedParamsByList.splice(index, 1);
+    
+    // Удаляем диапазон дат
+    window.AppState.dateRangesByList.splice(index, 1);
     
     // Удаляем состояние графика
     if (window.AppState.chartsVisible) {

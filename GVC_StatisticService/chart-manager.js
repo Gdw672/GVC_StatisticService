@@ -51,11 +51,17 @@ const ChartManager = {
     }
 
     const selectedParams = window.AppState.selectedParamsByList[chartIndex];
-    const selectedDates = window.AppState.selectedDates;
+    // Получаем даты для конкретного списка/графика
+    const selectedDates = window.TableManager.getSelectedDatesForChart(chartIndex);
     const rawData = window.TableManager.getRawData();
 
-    if (selectedParams.length === 0 || selectedDates.length === 0) {
-      this.handleEmptySelection(chartIndex);
+    if (selectedParams.length === 0) {
+      this.handleEmptySelection(chartIndex, 'Выберите параметры для графика!');
+      return;
+    }
+
+    if (selectedDates.length === 0) {
+      this.handleEmptySelection(chartIndex, 'Укажите диапазон дат для графика!');
       return;
     }
 
@@ -64,11 +70,7 @@ const ChartManager = {
     this.createPlotlyChart(chartIndex, chartData);
   },
 
-  handleEmptySelection(chartIndex) {
-    const message = window.AppState.selectedParamsByList[chartIndex].length === 0 
-      ? 'Выберите параметры для графика!' 
-      : 'Выберите даты для графика!';
-    
+  handleEmptySelection(chartIndex, message) {
     console.log(message, chartIndex + 1);
     alert(message);
     window.AppState.chartsVisible[chartIndex] = false;
@@ -76,6 +78,7 @@ const ChartManager = {
   },
 
   prepareChartData(rawData, selectedParams, selectedDates) {
+    // Фильтруем данные по выбранным датам
     const filteredData = rawData
       .filter(entry => selectedDates.some(d => new Date(entry.дата_отчета).getTime() === new Date(d).getTime()))
       .sort((a, b) => new Date(a.дата_отчета) - new Date(b.дата_отчета));

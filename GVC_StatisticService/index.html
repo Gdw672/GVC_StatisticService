@@ -10,9 +10,6 @@
     <div class="container">
       <div class="header-content">
         <h1>Отчет по данным</h1>
-        <button id="exportReportButton" class="export-button">
-          Выгрузить полный отчет
-        </button>
       </div>
     </div>
   </div>
@@ -30,14 +27,32 @@
           <input type="date" id="endDate" value="2025-07-18">
         </div>
         <button id="loadDataButton" class="load-data-button">Загрузить данные</button>
+        <div class="date-filter">
+          <div class="date-filter-download">
+          <input type="date" id="endDate" value="2025-07-17">
+        <button id="loadDataButton" class="load-data-button2">Скачать</button>
+        </div>
+        </div>
       </div>
     </div>
     
     <div class="section table-section">
   <div class="section-header">
+    <div class="section-name-header">  
     <h2 class="section-title">Таблица данных</h2>
     <button id="toggleButton" class="toggle-button">Повернуть таблицу</button>
-  </div>
+    </div>
+
+    <div class="section-slider">
+     <div class="slider-container"">
+        <input type="range" min="0" max="100" value="50" class="sliderV" id="mySliderV">
+    </div>
+    <div class="slider-container">
+        <input type="range" min="0" max="100" value="50" class="sliderH" id="mySliderH">
+    </div>
+    </div>
+    </div>
+
   <div id="tableContainer" class="table-container"></div>
   <div class="resize-handle-right"></div>
 </div>
@@ -73,6 +88,29 @@ window.addEventListener('scroll', () => {
   }
   lastScrollTop = scrollTop;
 });
+
+const sliderV = document.getElementById("mySliderV");
+const sliderH = document.getElementById("mySliderH");
+
+// Функция обновления стилей
+function updateStyles() {
+    // Получаем значения слайдеров
+    const valueV = sliderV.value;
+    const valueH = sliderH.value;
+
+    if (document.querySelector(".table-container table")) {
+    // Применяем значения слайдеров к стилям
+    document.querySelector(".table-container table").style.width = (valueV * 2) + "%";
+    document.querySelector(".table-container table").style.lineHeight = (valueH / 100) + 0.001;  // Например, от 0 до 1
+}
+}
+
+// Добавляем события для слайдеров
+sliderV.addEventListener("input", updateStyles);
+sliderH.addEventListener("input", updateStyles);
+
+// Инициализация начальных значений
+updateStyles();
 
     // Инициализация приложения
     const APP_CONFIG = {
@@ -112,3 +150,5 @@ window.addEventListener('scroll', () => {
   </script>
 </body>
 </html>
+    
+  
