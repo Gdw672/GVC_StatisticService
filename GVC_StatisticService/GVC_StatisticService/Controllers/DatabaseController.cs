@@ -16,9 +16,19 @@ namespace GVC_StatisticService.Controllers
         private readonly ICountReportService countReportService;
         private readonly ITxtReadService txtReadService;
         private readonly IPythonRunnerService pythonRunnerService;
+        private readonly IFileNameGenerateService checkFilesService;
+        private readonly IRedownloadFileService redownloadFileService;
 
         private readonly IStatisticDbContext statisticDbContext;
-        public DatabaseController(IReadCsvService readCsvService, IReportDbService reportDbService, ICountReportService countReportService, ITxtReadService txtReadService, IStatisticDbContext statisticDbContext, IPythonRunnerService pythonRunnerService) 
+        public DatabaseController(IReadCsvService readCsvService,
+            IReportDbService reportDbService,
+            ICountReportService countReportService,
+            ITxtReadService txtReadService,
+            IStatisticDbContext statisticDbContext,
+            IPythonRunnerService pythonRunnerService,
+            IFileNameGenerateService checkFilesService,
+            IRedownloadFileService redownloadFileService
+            ) 
         { 
             this.readCsvService = readCsvService;
             this.reportDbService = reportDbService;
@@ -26,13 +36,13 @@ namespace GVC_StatisticService.Controllers
             this.txtReadService = txtReadService;
             this.statisticDbContext = statisticDbContext;
             this.pythonRunnerService = pythonRunnerService;
+            this.checkFilesService = checkFilesService;
+            this.redownloadFileService = redownloadFileService;
         }
-
-
 
         [HttpPost]
         [Route("downloadReportByDate")]
-        public async Task<IActionResult> DownloadReportByDate(DateTime dateTime)
+        public async Task<IActionResult> RunDownloadReportForConcreteDate(DateTime dateTime)
         {
           return Ok(await pythonRunnerService.RunDownloadReportForConcreteDate(dateTime));
         }
@@ -56,11 +66,10 @@ namespace GVC_StatisticService.Controllers
         }
 
         [HttpGet]
-        [Route("tryCountReportBase")]
-        public async Task<IActionResult> GetData()
+        [Route("redownloadReportsByDate")]
+        public async Task<IActionResult> RedownloadReportsByDate(DateTime startDate, DateTime endDate)
         {
-
-            return Ok(await countReportService.GetCountReports(DateTime.SpecifyKind(new DateTime(2025, 7, 15), DateTimeKind.Utc)));
+           return Ok(await redownloadFileService.RedownloadReportsByDateAsync(startDate, endDate)); 
         }
     }
 }

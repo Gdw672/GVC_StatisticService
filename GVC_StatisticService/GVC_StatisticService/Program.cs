@@ -26,6 +26,10 @@ builder.Services.AddScoped<IReadCsvService, ReadCsvService>();
 builder.Services.AddScoped<IReportDbService, ReportDbService>();
 builder.Services.AddScoped<ICountReportService, CountReportService>();
 builder.Services.AddScoped<ITxtReadService, TxtReadService>();
+builder.Services.AddScoped<IFileNameGenerateService, FileNameGenerateService>();
+builder.Services.AddScoped<IDeleteCsvService, DeleteCsvService>();
+builder.Services.AddScoped<IRedownloadFileService, RedownloadFileService>();
+
 
 
 builder.Services.AddCors(options =>

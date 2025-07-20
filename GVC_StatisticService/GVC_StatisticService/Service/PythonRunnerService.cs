@@ -44,6 +44,12 @@ namespace GVC_StatisticService.Service
 
             return await reportDbService.WriteAndCountReportByDate(dateTime);
         }
+        public async Task<OperationResult> RunDownloadReportForConcreteDate(DateTime dateTime, int days)
+        {
+            await RunScriptAsync(dateTime, days);
+
+            return await reportDbService.WriteAndCountReportByDate(dateTime);
+        }
 
         public async Task<OperationResult> RunScriptAsync(DateTime startDate, int daysCount)
         {
@@ -51,7 +57,6 @@ namespace GVC_StatisticService.Service
             {
                 var scriptPath = _config["Python:ScriptPath"] ?? "Scripts/stub_script.py";
 
-                // Формируем строку аргументов: дата в формате dd.MM.yyyy и количество дней
                 var arguments = $"{startDate:dd.MM.yyyy} {daysCount}";
 
                 _logger.LogInformation("Запуск Python-скрипта: {Script} с аргументами: {Args}",
@@ -70,7 +75,6 @@ namespace GVC_StatisticService.Service
                 throw;
             }
         }
-
 
         private async Task<string> RunPythonProcess(string scriptPath, string arguments)
         {
