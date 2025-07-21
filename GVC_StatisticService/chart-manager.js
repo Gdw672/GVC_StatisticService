@@ -5,32 +5,11 @@ const ChartManager = {
   init(config) {
     this.config = config;
     this.initializeState();
-    this.loadPlotly();
+    this.plotlyLoaded = true;
   },
 
   initializeState() {
     window.AppState.chartsVisible = window.AppState.chartsVisible || [];
-    window.AppState.chartSettings = window.AppState.chartSettings || [];
-  },
-
-  async loadPlotly() {
-    try {
-      if (typeof Plotly !== 'undefined') {
-        this.plotlyLoaded = true;
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js';
-      script.onload = () => {
-        this.plotlyLoaded = true;
-        console.log('Plotly загружен');
-      };
-      script.onerror = () => console.error('Ошибка загрузки Plotly');
-      document.head.appendChild(script);
-    } catch (error) {
-      console.error('Ошибка загрузки Plotly:', error);
-    }
   },
 
   showChart(listIndex) {
@@ -51,7 +30,6 @@ const ChartManager = {
     }
 
     const selectedParams = window.AppState.selectedParamsByList[chartIndex];
-    // Получаем даты для конкретного списка/графика
     const selectedDates = window.TableManager.getSelectedDatesForChart(chartIndex);
     const rawData = window.TableManager.getRawData();
 
@@ -78,7 +56,6 @@ const ChartManager = {
   },
 
   prepareChartData(rawData, selectedParams, selectedDates) {
-    // Фильтруем данные по выбранным датам
     const filteredData = rawData
       .filter(entry => selectedDates.some(d => new Date(entry.дата_отчета).getTime() === new Date(d).getTime()))
       .sort((a, b) => new Date(a.дата_отчета) - new Date(b.дата_отчета));
@@ -107,9 +84,18 @@ const ChartManager = {
     chartContainer = document.createElement('div');
     chartContainer.id = chartId;
     chartContainer.className = 'chartContainer';
+    chartContainer.style.cssText = `
+      margin: 20px 0;
+      padding: 16px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e2e8f0;
+      width: 100%;
+      display: block;
+    `;
     
     chartContainer.appendChild(this.createChartHeader(chartIndex));
-    chartContainer.appendChild(this.createSettingsContainer(chartIndex));
     chartContainer.appendChild(this.createPlotContainer(chartIndex));
     
     chartsContainer.appendChild(chartContainer);
@@ -118,218 +104,210 @@ const ChartManager = {
   createChartHeader(chartIndex) {
     const header = document.createElement('div');
     header.className = 'chartHeader';
-    
-    const title = document.createElement('div');
-    title.className = 'chartTitle';
-    title.innerText = `График ${chartIndex + 1}`;
-    
-    const toggleSettingsButton = document.createElement('button');
-    toggleSettingsButton.className = 'toggleSettings';
-    toggleSettingsButton.innerText = 'Настройки';
-    toggleSettingsButton.addEventListener('click', () => {
-      document.getElementById(`settings_${chartIndex}`).classList.toggle('settings-collapsed');
-    });
+    header.style.cssText = `
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e2e8f0;
+    `;
     
     const closeButton = document.createElement('button');
     closeButton.className = 'closeChartButton';
-    closeButton.innerText = '✕';
+    closeButton.innerHTML = '✕';
+    closeButton.style.cssText = `
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      color: #718096;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+    closeButton.addEventListener('mouseover', () => {
+      closeButton.style.background = '#fed7d7';
+      closeButton.style.borderColor = '#fc8181';
+      closeButton.style.color = '#e53e3e';
+    });
+    closeButton.addEventListener('mouseout', () => {
+      closeButton.style.background = '#f7fafc';
+      closeButton.style.borderColor = '#e2e8f0';
+      closeButton.style.color = '#718096';
+    });
     closeButton.addEventListener('click', () => this.closeChart(chartIndex));
     
-    header.appendChild(title);
-    header.appendChild(toggleSettingsButton);
     header.appendChild(closeButton);
     
     return header;
-  },
-
-  createSettingsContainer(chartIndex) {
-    const settingsContainer = document.createElement('div');
-    settingsContainer.id = `settings_${chartIndex}`;
-    settingsContainer.className = 'chartSettings settings-collapsed';
-    
-    settingsContainer.appendChild(this.createSettingsGroup(chartIndex, 'Тип графика:', 'chartType', [
-      { value: 'scatter', text: 'Линейный' },
-      { value: 'bar', text: 'Столбчатый' },
-      { value: 'scattergl', text: 'Точечный' }
-    ]));
-    
-    settingsContainer.appendChild(this.createSettingsGroup(chartIndex, 'Толщина линии:', 'lineWidth', null, 'number', { min: 1, max: 10, value: 2 }));
-    
-    settingsContainer.appendChild(this.createSettingsGroup(chartIndex, 'Показать маркеры:', 'markers', null, 'checkbox', { checked: true }));
-    
-    settingsContainer.appendChild(this.createSettingsGroup(chartIndex, 'Масштаб осей:', 'scale', [
-      { value: 'linear', text: 'Линейный' },
-      { value: 'log', text: 'Логарифмический' }
-    ]));
-    
-    const applyButton = document.createElement('button');
-    applyButton.className = 'applySettings';
-    applyButton.innerText = 'Применить';
-    applyButton.addEventListener('click', () => this.applyChartSettings(chartIndex));
-    settingsContainer.appendChild(applyButton);
-    
-    return settingsContainer;
-  },
-
-  createSettingsGroup(chartIndex, labelText, id, options = null, inputType = 'select', attributes = {}) {
-    const group = document.createElement('div');
-    group.className = 'settingsGroup';
-    
-    const label = document.createElement('label');
-    label.innerText = labelText;
-    
-    const input = document.createElement(inputType);
-    input.id = `${id}_${chartIndex}`;
-    
-    if (inputType === 'select' && options) {
-      options.forEach(opt => {
-        const option = document.createElement('option');
-        option.value = opt.value;
-        option.text = opt.text;
-        input.appendChild(option);
-      });
-    } else if (inputType === 'number') {
-      input.type = 'number';
-      input.min = attributes.min;
-      input.max = attributes.max;
-      input.value = attributes.value;
-    } else if (inputType === 'checkbox') {
-      input.checked = attributes.checked;
-    }
-    
-    group.appendChild(label);
-    group.appendChild(input);
-    return group;
   },
 
   createPlotContainer(chartIndex) {
     const plotContainer = document.createElement('div');
     plotContainer.id = `plot_${chartIndex}`;
     plotContainer.className = 'chartPlot';
+    plotContainer.style.cssText = `
+      min-height: 600px;
+      width: 100%;
+    `;
     return plotContainer;
-  },
-
-  applyChartSettings(chartIndex) {
-    const settings = {
-      chartType: document.getElementById(`chartType_${chartIndex}`).value,
-      lineWidth: parseInt(document.getElementById(`lineWidth_${chartIndex}`).value),
-      showMarkers: document.getElementById(`markers_${chartIndex}`).checked,
-      scaleType: document.getElementById(`scale_${chartIndex}`).value
-    };
-    
-    window.AppState.chartSettings[chartIndex] = settings;
-    this.renderChart(chartIndex);
   },
 
   createPlotlyChart(chartIndex, chartData) {
     const plotId = `plot_${chartIndex}`;
-    const settings = window.AppState.chartSettings[chartIndex] || {
-      chartType: 'scatter',
-      lineWidth: 2,
-      showMarkers: true,
-      scaleType: 'linear'
-    };
     
-    const traces = this.prepareTraces(chartData, settings);
-    const layout = this.prepareLayout(chartIndex, chartData, settings);
+    const traces = this.prepareTraces(chartData);
+    const layout = this.prepareLayout(chartIndex, chartData);
     const config = {
       displayModeBar: true,
-      modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+      modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'autoScale2d'],
       responsive: true,
-      displaylogo: false
+      displaylogo: false,
+      toImageButtonOptions: {
+        format: 'png',
+        filename: `график_${chartIndex + 1}`,
+        height: 800,
+        width: 1200,
+        scale: 2
+      }
     };
     
     Plotly.newPlot(plotId, traces, layout, config);
   },
 
-  prepareTraces(chartData, settings) {
+  prepareTraces(chartData) {
     const percentageData = chartData.filter(item => item.type === 'percentage');
     const absoluteData = chartData.filter(item => item.type === 'absolute');
-    const colors = ['#3182ce', '#ed8936', '#38a169', '#e53e3e', '#805ad5', '#a1887f', '#ed64a6', '#718096'];
-    let colorIndex = 0;
     
+    const colors = [
+      '#667eea', '#764ba2', '#f093fb', '#f5576c',
+      '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+      '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
+    ];
+    
+    let colorIndex = 0;
     const traces = [];
     
     percentageData.forEach(item => {
-      traces.push(this.createTrace(item, settings, colors[colorIndex++ % colors.length], 'y'));
+      traces.push(this.createTrace(item, colors[colorIndex++ % colors.length], 'y'));
     });
     
     absoluteData.forEach(item => {
-      traces.push(this.createTrace(item, settings, colors[colorIndex++ % colors.length], 'y2'));
+      traces.push(this.createTrace(item, colors[colorIndex++ % colors.length], 'y2'));
     });
     
     return traces;
   },
 
-  createTrace(item, settings, color, yaxis) {
+  createTrace(item, color, yaxis) {
     return {
       x: item.dates,
       y: item.values,
-      type: settings.chartType,
-      mode: settings.showMarkers && settings.chartType === 'scatter' ? 'lines+markers' : 'lines',
+      type: 'scatter',
+      mode: 'lines+markers',
       name: item.parameter,
-      line: { color, width: settings.lineWidth },
-      marker: { size: 8, symbol: 'circle', line: { width: 1, color: '#fff' } },
-      yaxis
+      line: { 
+        color: color, 
+        width: 3,
+        shape: 'spline',
+        smoothing: 0.3
+      },
+      marker: { 
+        size: 8, 
+        symbol: 'circle', 
+        line: { width: 2, color: '#fff' },
+        color: color
+      },
+      yaxis,
+      hovertemplate: '<b>%{fullData.name}</b><br>' +
+                     'Дата: %{x}<br>' +
+                     'Значение: %{y}<br>' +
+                     '<extra></extra>',
+      hoverlabel: {
+        bgcolor: 'rgba(255, 255, 255, 0.95)',
+        bordercolor: color,
+        font: { color: '#2d3748', size: 12 }
+      }
     };
   },
 
-  prepareLayout(chartIndex, chartData, settings) {
+  prepareLayout(chartIndex, chartData) {
     const percentageData = chartData.filter(item => item.type === 'percentage');
     const absoluteData = chartData.filter(item => item.type === 'absolute');
     
     const layout = {
-      title: {
-        text: `График ${chartIndex + 1}`,
-        font: { size: 18, color: '#2d3748' },
-        x: 0.5,
-        xanchor: 'center'
-      },
       xaxis: {
-        title: 'Дата',
-        gridcolor: '#e2e8f0',
-        linecolor: '#718096',
-        linewidth: 1,
-        tickangle: 45
+        title: {
+          font: { size: 14, color: '#4a5568' }
+        },
+        gridcolor: 'rgba(0, 0, 0, 0.05)',
+        linecolor: '#e2e8f0',
+        linewidth: 2,
+        tickangle: -45,
+        tickfont: { size: 11, color: '#718096' },
+        showgrid: true,
+        zeroline: false
       },
       yaxis: {
-        title: percentageData.length > 0 ? 'Проценты (%)' : 'Значения',
+        title: {
+          text: percentageData.length > 0 ? '<b>Проценты (%)</b>' : '<b>Значения</b>',
+          font: { size: 14, color: '#4a5568' }
+        },
         side: 'left',
-        gridcolor: '#e2e8f0',
-        linecolor: '#718096',
-        linewidth: 1,
-        type: settings.scaleType,
-        showgrid: true
+        gridcolor: 'rgba(0, 0, 0, 0.05)',
+        linecolor: '#e2e8f0',
+        linewidth: 2,
+        showgrid: true,
+        zeroline: false,
+        tickfont: { size: 11, color: '#718096' }
       },
       yaxis2: {
-        title: absoluteData.length > 0 ? 'Абсолютные значения' : '',
+        title: {
+          text: absoluteData.length > 0 ? '<b>Абсолютные значения</b>' : '',
+          font: { size: 14, color: '#4a5568' }
+        },
         side: 'right',
         overlaying: 'y',
-        gridcolor: '#e2e8f0',
-        linecolor: '#718096',
-        linewidth: 1,
-        type: settings.scaleType,
-        showgrid: false
+        gridcolor: 'rgba(0, 0, 0, 0.02)',
+        linecolor: '#e2e8f0',
+        linewidth: 2,
+        showgrid: false,
+        zeroline: false,
+        tickfont: { size: 11, color: '#718096' }
       },
       legend: {
         x: 0.5,
-        y: -0.2,
+        y: -0.4,
         xanchor: 'center',
         yanchor: 'top',
         orientation: 'h',
-        font: { size: 12 }
+        font: { size: 12, color: '#4a5568' },
+        bgcolor: 'rgba(255, 255, 255, 0.9)',
+        bordercolor: 'rgba(0, 0, 0, 0.1)',
+        borderwidth: 1,
+        itemsizing: 'constant',
+        itemwidth: 30
       },
-      margin: { l: 80, r: 80, t: 80, b: 100 },
+      margin: { l: 80, r: 80, t: 40, b: 200 },
       showlegend: true,
-      hovermode: 'x unified',
-      plot_bgcolor: '#f8fafc',
+      hovermode: 'closest',
+      plot_bgcolor: '#fafafa',
       paper_bgcolor: '#ffffff',
-      font: { family: 'Inter, sans-serif', color: '#2d3748' }
+      font: { 
+        family: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', 
+        color: '#2d3748' 
+      },
+      hoverdistance: 20,
+      spikedistance: 100
     };
     
     if (percentageData.length === 0) {
       delete layout.yaxis2;
-      layout.traces?.forEach(trace => trace.yaxis = 'y');
     } else if (absoluteData.length === 0) {
       delete layout.yaxis2;
     }
@@ -339,7 +317,12 @@ const ChartManager = {
 
   closeChart(chartIndex) {
     const chartContainer = document.getElementById(`chart_${chartIndex}`);
-    if (chartContainer) chartContainer.remove();
+    if (chartContainer) {
+      chartContainer.style.transition = 'all 0.3s ease';
+      chartContainer.style.opacity = '0';
+      chartContainer.style.transform = 'scale(0.95)';
+      setTimeout(() => chartContainer.remove(), 300);
+    }
     
     while (window.AppState.chartsVisible.length <= chartIndex) {
       window.AppState.chartsVisible.push(false);

@@ -21,29 +21,44 @@ const TableManager = {
     document.getElementById(this.config.toggleButton).addEventListener('click', () => {
       window.AppState.transposed = !window.AppState.transposed;
       this.render();
-    });
-
-    // Кнопка добавления нового списка
-    document.getElementById(this.config.addListButton).addEventListener('click', () => {
-      window.AppState.selectedParamsByList.push([]);
-      window.AppState.activeListIndex = window.AppState.selectedParamsByList.length - 1;
-      
-      // Добавляем новый диапазон дат для нового списка
-      window.AppState.dateRangesByList.push({ startDate: '', endDate: '' });
-      
-      // Синхронизируем состояние графиков
-      while (window.AppState.chartsVisible.length < window.AppState.selectedParamsByList.length) {
-        window.AppState.chartsVisible.push(false);
-      }
-      
-      this.renderLists();
-      this.render();
+      this.updateToggleButtonText();
     });
 
     // Кнопка загрузки данных
     document.getElementById(this.config.loadDataButton).addEventListener('click', () => {
       this.loadData();
     });
+
+    // Обновляем текст кнопки при инициализации
+    this.updateToggleButtonText();
+  },
+
+  updateToggleButtonText() {
+    const button = document.getElementById(this.config.toggleButton);
+    button.textContent = window.AppState.transposed ? 'Вертикальный вид' : 'Горизонтальный вид';
+  },
+
+  addNewList() {
+    window.AppState.selectedParamsByList.push([]);
+    window.AppState.activeListIndex = window.AppState.selectedParamsByList.length - 1;
+    
+    // Добавляем новый диапазон дат для нового списка
+    window.AppState.dateRangesByList.push({ startDate: '', endDate: '' });
+    
+    // Синхронизируем состояние графиков
+    this.syncChartsState();
+    
+    this.renderTabs();
+    this.render();
+    
+    // Переключаемся на новый таб
+    this.switchTab(window.AppState.activeListIndex);
+  },
+
+  syncChartsState() {
+    while (window.AppState.chartsVisible.length < window.AppState.selectedParamsByList.length) {
+      window.AppState.chartsVisible.push(false);
+    }
   },
 
   formatEntry(entry) {
@@ -54,7 +69,7 @@ const TableManager = {
     }
     for (let key in result) {
       if (key.startsWith("процент_")) {
-        result[key] = (result[key] * 100).toFixed(0) + " %";
+        result[key] = (result[key] * 100).toFixed(1) + "%";
       }
     }
     return result;
@@ -69,6 +84,16 @@ const TableManager = {
       const startDate = document.getElementById(this.config.startDateInput).value;
       const endDate = document.getElementById(this.config.endDateInput).value;
       
+      if (!startDate || !endDate) {
+        alert("Пожалуйста, выберите диапазон дат");
+        return;
+      }
+
+      if (new Date(startDate) > new Date(endDate)) {
+        alert("Дата начала не может быть больше даты окончания");
+        return;
+      }
+      
       const formattedStartDate = this.formatDateForAPI(startDate);
       const formattedEndDate = this.formatDateForAPI(endDate);
       
@@ -77,6 +102,9 @@ const TableManager = {
       url.searchParams.append('endDate', formattedEndDate);
       
       console.log("Запрос к URL:", url.toString());
+      
+      // Показываем индикатор загрузки
+      this.showLoadingState();
       
       const response = await fetch(url.toString());
       
@@ -87,42 +115,125 @@ const TableManager = {
       const data = await response.json();
       console.log("Получены данные:", data);
       
-      window.AppState.originalData = data;
-      window.AppState.selectedParamsByList = [[]];
-      window.AppState.selectedDates = [];
-      window.AppState.activeListIndex = 0;
-      window.AppState.chartsVisible = [false];
-      window.AppState.dateRangesByList = [{ startDate: '', endDate: '' }];
+      if (!data || data.length === 0) {
+        alert("Нет данных для выбранного диапазона дат");
+        return;
+      }
+      
+      // Сбрасываем состояние приложения
+      this.resetAppState(data);
       
       this.render();
-      this.renderLists();
+      this.renderTabs();
+      this.hideLoadingState();
+      
     } catch (error) {
       console.error("Ошибка загрузки данных:", error);
       alert("Ошибка загрузки данных: " + error.message);
+      this.hideLoadingState();
     }
+  },
+
+  resetAppState(data) {
+    window.AppState.originalData = data;
+    window.AppState.selectedParamsByList = [[]];
+    window.AppState.selectedDates = [];
+    window.AppState.activeListIndex = 0;
+    window.AppState.chartsVisible = [false];
+    window.AppState.dateRangesByList = [{ startDate: '', endDate: '' }];
+  },
+
+  showLoadingState() {
+    const button = document.getElementById(this.config.loadDataButton);
+    button.textContent = "Загрузка...";
+    button.disabled = true;
+  },
+
+  hideLoadingState() {
+    const button = document.getElementById(this.config.loadDataButton);
+    button.textContent = "Загрузить данные";
+    button.disabled = false;
   },
 
   toggleParam(param) {
     const list = window.AppState.selectedParamsByList[window.AppState.activeListIndex];
     const index = list.indexOf(param);
+    const tabContentContainer = document.querySelector('.tab-content-container');
+    const wasHidden = tabContentContainer?.classList.contains('hidden') || false;
+    
     if (index >= 0) {
       list.splice(index, 1);
     } else {
       list.push(param);
     }
-    this.renderLists();
+    this.renderTabs(wasHidden);
     this.render();
   },
 
-  // Убираем метод toggleDate, так как теперь используем диапазоны
-  
   updateDateRange(listIndex, startDate, endDate) {
     window.AppState.dateRangesByList[listIndex] = { startDate, endDate };
+    
+    // Обновляем информацию о диапазоне
+    this.updateDateRangeInfo(listIndex, startDate, endDate);
     
     // Если это активный список, обновляем отображение
     if (listIndex === window.AppState.activeListIndex) {
       this.render();
     }
+  },
+
+  updateDateRangeInfo(listIndex, startDate, endDate) {
+    const infoElement = document.querySelector(`#tab-content-${listIndex} .date-range-info`);
+    if (!infoElement) return;
+    
+    if (startDate && endDate) {
+      const startDateObj = new Date(startDate);
+      const endDateObj = new Date(endDate);
+      
+      if (startDateObj <= endDateObj) {
+        const diffTime = Math.abs(endDateObj - startDateObj);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        infoElement.textContent = `Выбран диапазон: ${diffDays} ${this.getDayWord(diffDays)}`;
+        infoElement.classList.remove('error');
+        infoElement.classList.add('success');
+      } else {
+        infoElement.textContent = 'Некорректный диапазон дат';
+        infoElement.classList.remove('success');
+        infoElement.classList.add('error');
+      }
+    } else {
+      infoElement.textContent = 'Выберите диапазон дат';
+      infoElement.classList.remove('success', 'error');
+    }
+  },
+
+  getDayWord(days) {
+    if (days === 1) return 'день';
+    if (days >= 2 && days <= 4) return 'дня';
+    return 'дней';
+  },
+
+  validateDateRange(startInput, endInput) {
+    const startDate = new Date(startInput.value);
+    const endDate = new Date(endInput.value);
+    
+    // Сброс классов
+    startInput.classList.remove('error', 'success');
+    endInput.classList.remove('error', 'success');
+    
+    if (startInput.value && endInput.value) {
+      if (startDate > endDate) {
+        startInput.classList.add('error');
+        endInput.classList.add('error');
+        return false;
+      } else {
+        startInput.classList.add('success');
+        endInput.classList.add('success');
+        return true;
+      }
+    }
+    
+    return true;
   },
 
   getSelectedDatesForList(listIndex) {
@@ -143,124 +254,261 @@ const TableManager = {
       .sort((a, b) => new Date(a) - new Date(b));
   },
 
-  renderLists() {
+  renderTabs(wasHidden = false) {
     const container = document.getElementById(this.config.listsContainer);
     container.innerHTML = "";
     
     // Синхронизируем состояние графиков с количеством списков
-    while (window.AppState.chartsVisible.length < window.AppState.selectedParamsByList.length) {
-      window.AppState.chartsVisible.push(false);
+    this.syncChartsState();
+    this.syncDateRanges();
+    
+    // Создаем контейнер для табов
+    const tabsContainer = document.createElement('div');
+    tabsContainer.className = 'tabs-container';
+
+    // Проверяем существование tab-nav
+    let tabNav = document.querySelector('.tab-nav');
+    if (!tabNav) {
+      tabNav = document.createElement('div');
+      tabNav.className = 'tab-nav';
+      tabsContainer.appendChild(tabNav);
     }
     
-    // Синхронизируем диапазоны дат с количеством списков
+    // Очищаем существующий tab-nav
+    tabNav.innerHTML = '';
+    
+   39
+    // Создаем кнопки табов
+    window.AppState.selectedParamsByList.forEach((params, index) => {
+      const tabBtn = document.createElement('button');
+      tabBtn.className = 'tab-btn';
+
+    // Кнопка удаления списка
+    const KillBtn = document.createElement('button');
+    
+
+
+      if (index === window.AppState.activeListIndex) {
+        tabBtn.classList.add('active');
+      }
+      
+      const tabLabel = document.createElement('span');
+      tabLabel.textContent = `График ${index + 1}`;
+      
+      const paramCounter = document.createElement('span');
+      paramCounter.className = 'param-counter';
+      paramCounter.textContent = params.length;
+      
+      
+      tabBtn.appendChild(paramCounter);
+      tabBtn.appendChild(tabLabel);
+      KillBtn.className = 'btn btn-xs btn-overlay right';
+    KillBtn.textContent = '🗙';
+    KillBtn.addEventListener('click', () => {
+        this.deleteList(window.AppState.activeListIndex);
+    });
+        tabBtn.appendChild(KillBtn);
+      
+      tabBtn.addEventListener('click', () => {
+        this.switchTab(index);
+      });
+      
+      tabNav.appendChild(tabBtn);
+    });
+    
+    // Кнопка добавления нового таба
+    const addTabBtn = document.createElement('button');
+    addTabBtn.className = 'btn btn-xs btn-secondary';
+    addTabBtn.textContent = '+';
+    addTabBtn.addEventListener('click', () => {
+      this.addNewList();
+    });
+
+    // Кнопка сокрытия/показа tab-content-container
+    const toggleTabContentBtn = document.createElement('button');
+    toggleTabContentBtn.className = 'btn btn-xs btn-secondary end';
+    toggleTabContentBtn.textContent = wasHidden ? '+' : '–';
+    toggleTabContentBtn.addEventListener('click', () => {
+      const tabContentContainer = document.querySelector('.tab-content-container');
+      if (tabContentContainer) {
+        tabContentContainer.classList.toggle('hidden');
+        toggleTabContentBtn.textContent = tabContentContainer.classList.contains('hidden') ? '+' : '–';
+      }
+    });
+
+    // Кнопка показа/скрытия графика
+    const GraphBtn = document.createElement('button');
+    GraphBtn.className = 'btn btn-xs btn-secondary first';
+    GraphBtn.textContent = window.AppState.chartsVisible[window.AppState.activeListIndex] ? '👁' : '👁';
+    GraphBtn.addEventListener('click', () => {
+      const isChartVisible = window.AppState.chartsVisible[window.AppState.activeListIndex];
+      if (isChartVisible) {
+        window.ChartManager.closeChart(window.AppState.activeListIndex);
+      } else {
+        window.ChartManager.showChart(window.AppState.activeListIndex);
+      }
+      // Обновляем текст кнопки после переключения
+      GraphBtn.textContent = window.AppState.chartsVisible[window.AppState.activeListIndex] ? '👁,' : '👁';
+    });
+
+
+    
+    const tabBtnContainer = document.createElement('div');
+    tabBtnContainer.className = 'tab-btn-container end';
+
+    tabNav.appendChild(addTabBtn);
+    tabNav.appendChild(tabBtnContainer);
+    tabNav.appendChild(GraphBtn);
+
+    tabBtnContainer.appendChild(toggleTabContentBtn);
+    tabsContainer.appendChild(tabNav);
+    
+    // Создаем контейнер для содержимого табов
+    const tabContentContainerNew = document.createElement('div');
+    tabContentContainerNew.className = 'tab-content-container';
+    if (wasHidden) {
+      tabContentContainerNew.classList.add('hidden');
+    }
+    
+    // Создаем контент табов
+    window.AppState.selectedParamsByList.forEach((params, index) => {
+      const tabContent = this.createTabContent(params, index);
+      tabContentContainerNew.appendChild(tabContent);
+    });
+    
+    tabsContainer.appendChild(tabContentContainerNew);
+    container.appendChild(tabsContainer);
+  },
+
+  createTabContent(params, index) {
+    const tabContent = document.createElement('div');
+    tabContent.className = 'tab-content';
+    tabContent.id = `tab-content-${index}`;
+    
+    if (index !== window.AppState.activeListIndex) {
+      tabContent.style.display = 'none';
+    }
+    
+    // Контейнер для тегов
+    const tagsContainer = document.createElement('div');
+    tagsContainer.className = 'tags-container';
+    
+    if (params.length === 0) {
+      const emptyMessage = document.createElement('div');
+      emptyMessage.className = 'empty-message';
+      emptyMessage.textContent = 'Ничего не выбрано';
+      tagsContainer.appendChild(emptyMessage);
+    } else {
+      params.forEach(param => {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.textContent = param;
+        tag.addEventListener('click', () => {
+          this.toggleParam(param);
+        });
+        tagsContainer.appendChild(tag);
+      });
+    }
+    
+    // Контейнер для выбора дат
+    const dateFilters = this.createDateFilters(index);
+    
+    tabContent.appendChild(tagsContainer);
+    tabContent.appendChild(dateFilters);
+    
+    return tabContent;
+  },
+
+  createDateFilters(index) {
+    const dateFilters = document.createElement('div');
+    dateFilters.className = 'listDateFilters';
+    
+    const dateRange = window.AppState.dateRangesByList[index];
+    
+    const startFilterDiv = document.createElement('div');
+    startFilterDiv.className = 'date-filter-small';
+    
+    const startLabel = document.createElement('label');
+    startLabel.setAttribute('for', `tab-start-${index}`);
+    startLabel.textContent = 'От:';
+    
+    const startInput = document.createElement('input');
+    startInput.type = 'date';
+    startInput.id = `tab-start-${index}`;
+    startInput.className = 'form-input';
+    startInput.value = dateRange.startDate || '';
+    
+    startFilterDiv.appendChild(startLabel);
+    startFilterDiv.appendChild(startInput);
+    
+    const endFilterDiv = document.createElement('div');
+    endFilterDiv.className = 'date-filter-small';
+    
+    const endLabel = document.createElement('label');
+    endLabel.setAttribute('for', `tab-end-${index}`);
+    endLabel.textContent = 'До:';
+    
+    const endInput = document.createElement('input');
+    endInput.type = 'date';
+    endInput.id = `tab-end-${index}`;
+    endInput.className = 'form-input';
+    endInput.value = dateRange.endDate || '';
+    
+    endFilterDiv.appendChild(endLabel);
+    endFilterDiv.appendChild(endInput);
+    
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'date-range-info';
+    infoDiv.textContent = 'Выберите диапазон дат';
+    
+    dateFilters.appendChild(startFilterDiv);
+    dateFilters.appendChild(endFilterDiv);
+    dateFilters.appendChild(infoDiv);
+    
+    // Обработчики событий
+    startInput.addEventListener('change', (e) => {
+      this.validateDateRange(startInput, endInput);
+      this.updateDateRange(index, e.target.value, endInput.value);
+    });
+    
+    endInput.addEventListener('change', (e) => {
+      this.validateDateRange(startInput, endInput);
+      this.updateDateRange(index, startInput.value, e.target.value);
+    });
+    
+    return dateFilters;
+  },
+
+  switchTab(index) {
+    window.AppState.activeListIndex = index;
+    
+    // Обновляем активные кнопки
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+      if (i === index) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    
+    // Показываем/скрываем контент
+    document.querySelectorAll('.tab-content').forEach((content, i) => {
+      if (i === index) {
+        content.style.display = 'block';
+      } else {
+        content.style.display = 'none';
+      }
+    });
+    
+    
+    // Обновляем таблицу
+    this.render();
+  },
+
+  syncDateRanges() {
     while (window.AppState.dateRangesByList.length < window.AppState.selectedParamsByList.length) {
       window.AppState.dateRangesByList.push({ startDate: '', endDate: '' });
     }
-    
-    window.AppState.selectedParamsByList.forEach((params, index) => {
-      const block = document.createElement("div");
-      block.className = "listBlock";
-      if (index === window.AppState.activeListIndex) block.classList.add("active");
-
-      // Заголовок списка
-      const header = document.createElement("div");
-      header.className = "listHeader";
-      header.innerHTML = "<strong>Список " + (index + 1) + ":</strong>";
-      
-      // Контейнер для параметров
-      const content = document.createElement("div");
-      content.className = "listContent";
-      
-      params.forEach(p => {
-        const tag = document.createElement("span");
-        tag.className = "tag";
-        tag.innerText = p;
-        content.appendChild(tag);
-      });
-
-      // Контейнер для выбора дат
-      const dateFilters = document.createElement("div");
-      dateFilters.className = "listDateFilters";
-      
-      const dateRange = window.AppState.dateRangesByList[index];
-      
-      // Поле начальной даты
-      const startDateContainer = document.createElement("div");
-      startDateContainer.className = "date-filter-small";
-      const startLabel = document.createElement("label");
-      startLabel.innerText = "От:";
-      const startInput = document.createElement("input");
-      startInput.type = "date";
-      startInput.value = dateRange.startDate || '';
-      startInput.addEventListener('change', (e) => {
-        this.updateDateRange(index, e.target.value, dateRange.endDate);
-      });
-      startDateContainer.appendChild(startLabel);
-      startDateContainer.appendChild(startInput);
-      
-      // Поле конечной даты
-      const endDateContainer = document.createElement("div");
-      endDateContainer.className = "date-filter-small";
-      const endLabel = document.createElement("label");
-      endLabel.innerText = "До:";
-      const endInput = document.createElement("input");
-      endInput.type = "date";
-      endInput.value = dateRange.endDate || '';
-      endInput.addEventListener('change', (e) => {
-        this.updateDateRange(index, dateRange.startDate, e.target.value);
-      });
-      endDateContainer.appendChild(endLabel);
-      endDateContainer.appendChild(endInput);
-      
-      dateFilters.appendChild(startDateContainer);
-      dateFilters.appendChild(endDateContainer);
-
-      // Создаем контейнер для кнопок
-      const buttonsContainer = document.createElement("div");
-      buttonsContainer.className = "listButtons";
-
-      // Кнопка показа/скрытия графика
-      const chartButton = document.createElement("button");
-      chartButton.className = "chartButton";
-      
-      const isChartVisible = window.AppState.chartsVisible[index];
-      chartButton.innerText = isChartVisible ? "⭮" : "⭮";
-      chartButton.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (isChartVisible) {
-          window.ChartManager.closeChart(index);
-        } else {
-          window.ChartManager.showChart(index);
-        }
-      });
-
-      // Кнопка удаления списка (показываем только если списков больше 1)
-      if (window.AppState.selectedParamsByList.length > 1) {
-        const deleteButton = document.createElement("button");
-        deleteButton.className = "deleteButton";
-        deleteButton.innerText = "✖";
-        deleteButton.addEventListener("click", (e) => {
-          e.stopPropagation();
-          this.deleteList(index);
-        });
-        buttonsContainer.appendChild(deleteButton);
-      }
-
-      buttonsContainer.appendChild(chartButton);
-      
-      block.appendChild(header);
-      block.appendChild(content);
-      block.appendChild(dateFilters);
-      block.appendChild(buttonsContainer);
-
-      block.addEventListener("click", () => {
-        window.AppState.activeListIndex = index;
-        this.renderLists();
-        this.render();
-      });
-      
-      container.appendChild(block);
-    });
   },
 
   render() {
@@ -268,7 +516,10 @@ const TableManager = {
     container.innerHTML = "";
 
     const formattedData = window.AppState.originalData.map(this.formatEntry);
-    if (formattedData.length === 0) return;
+    if (formattedData.length === 0) {
+      container.innerHTML = "<p class='no-data'>Нет данных для отображения</p>";
+      return;
+    }
 
     // Фильтруем данные по диапазону дат активного списка
     const activeListDates = this.getSelectedDatesForList(window.AppState.activeListIndex);
@@ -279,6 +530,11 @@ const TableManager = {
           )
         )
       : formattedData;
+
+    if (filteredData.length === 0) {
+      container.innerHTML = "<p class='no-data'>Нет данных для выбранного диапазона дат</p>";
+      return;
+    }
 
     const fields = Object.keys(formattedData[0]).filter(f => f !== "id" && f !== "дата_отчета_raw");
     const table = document.createElement("table");
@@ -295,17 +551,24 @@ const TableManager = {
   renderNormalTable(table, formattedData, fields) {
     const thead = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    headerRow.appendChild(document.createElement("th")).innerText = "Дата";
+    
+    const dateHeader = document.createElement("th");
+    dateHeader.textContent = "Дата";
+    dateHeader.className = "date-column";
+    headerRow.appendChild(dateHeader);
 
     fields.filter(f => f !== "дата_отчета").forEach(field => {
       const th = document.createElement("th");
-      th.innerText = field;
+      th.textContent = field;
+      th.title = `Нажмите для ${window.AppState.selectedParamsByList[window.AppState.activeListIndex].includes(field) ? 'удаления из' : 'добавления в'} график`;
+      
       if (window.AppState.selectedParamsByList[window.AppState.activeListIndex].includes(field)) {
         th.classList.add("selected");
       }
       th.addEventListener("click", () => this.toggleParam(field));
       headerRow.appendChild(th);
     });
+    
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
@@ -316,12 +579,13 @@ const TableManager = {
       const row = document.createElement("tr");
 
       const dateCell = document.createElement("td");
-      dateCell.innerText = entry.дата_отчета;
+      dateCell.textContent = entry.дата_отчета;
+      dateCell.className = "date-column";
       row.appendChild(dateCell);
 
       fields.filter(f => f !== "дата_отчета").forEach(field => {
         const cell = document.createElement("td");
-        cell.innerText = entry[field];
+        cell.textContent = entry[field];
         row.appendChild(cell);
       });
 
@@ -334,12 +598,17 @@ const TableManager = {
   renderTransposedTable(table, formattedData, fields) {
     const thead = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    headerRow.appendChild(document.createElement("th")).innerText = "Показатель";
+    
+    const paramHeader = document.createElement("th");
+    paramHeader.textContent = "Показатель";
+    paramHeader.className = "param-column";
+    headerRow.appendChild(paramHeader);
 
     const sortedDates = this.getSortedData(formattedData);
     sortedDates.forEach(entry => {
       const th = document.createElement("th");
-      th.innerText = entry.дата_отчета;
+      th.textContent = entry.дата_отчета;
+      th.className = "date-column";
       headerRow.appendChild(th);
     });
 
@@ -350,7 +619,10 @@ const TableManager = {
     fields.filter(f => f !== "дата_отчета").forEach(field => {
       const row = document.createElement("tr");
       const paramCell = document.createElement("td");
-      paramCell.innerText = field;
+      paramCell.textContent = field;
+      paramCell.className = "param-column";
+      paramCell.title = `Нажмите для ${window.AppState.selectedParamsByList[window.AppState.activeListIndex].includes(field) ? 'удаления из' : 'добавления в'} график`;
+      
       if (window.AppState.selectedParamsByList[window.AppState.activeListIndex].includes(field)) {
         paramCell.classList.add("selected");
       }
@@ -359,7 +631,7 @@ const TableManager = {
 
       sortedDates.forEach(entry => {
         const cell = document.createElement("td");
-        cell.innerText = entry[field];
+        cell.textContent = entry[field];
         row.appendChild(cell);
       });
 
@@ -380,11 +652,9 @@ const TableManager = {
   },
 
   getSelectedDates() {
-    // Возвращаем даты для активного списка на основе диапазона
     return this.getSelectedDatesForList(window.AppState.activeListIndex);
   },
 
-  // Новый метод для получения дат конкретного списка (для графиков)
   getSelectedDatesForChart(listIndex) {
     return this.getSelectedDatesForList(listIndex);
   },
@@ -399,7 +669,7 @@ const TableManager = {
 
   deleteList(index) {
     if (window.AppState.selectedParamsByList.length <= 1) {
-      alert("Нельзя удалить последний список!");
+      alert("Нельзя удалить последний график!");
       return;
     }
     
@@ -424,7 +694,12 @@ const TableManager = {
       window.AppState.activeListIndex = Math.max(0, window.AppState.activeListIndex - 1);
     }
 
-    this.renderLists();
+    this.renderTabs();
     this.render();
+  },
+
+  // Алиас для совместимости
+  renderLists() {
+    this.renderTabs();
   }
 };
