@@ -180,29 +180,38 @@ const ChartManager = {
     Plotly.newPlot(plotId, traces, layout, config);
   },
 
-  prepareTraces(chartData) {
-    const percentageData = chartData.filter(item => item.type === 'percentage');
-    const absoluteData = chartData.filter(item => item.type === 'absolute');
-    
-    const colors = [
-      '#667eea', '#764ba2', '#f093fb', '#f5576c',
-      '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
-      '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
-    ];
-    
-    let colorIndex = 0;
-    const traces = [];
-    
-    percentageData.forEach(item => {
-      traces.push(this.createTrace(item, colors[colorIndex++ % colors.length], 'y'));
-    });
-    
-    absoluteData.forEach(item => {
-      traces.push(this.createTrace(item, colors[colorIndex++ % colors.length], 'y2'));
-    });
-    
-    return traces;
-  },
+  prepareTraces(chartData, theme) {
+  const percentageData = chartData.filter(item => item.type === 'percentage');
+  const absoluteData = chartData.filter(item => item.type === 'absolute');
+  
+  const colors = [
+    '#FF0000', // Pure Red
+    '#00FF00', // Pure Green
+    '#0000FF', // Pure Blue
+    '#FF00FF', // Pure Magenta
+    '#00FFFF', // Pure Cyan
+    '#FFFF00', // Pure Yellow
+    '#FF4500', // OrangeRed
+    '#32CD32', // LimeGreen
+    '#1E90FF', // DodgerBlue
+    '#FF69B4', // HotPink
+    '#00CED1', // DarkTurquoise
+    '#FFD700'  // Gold
+  ];
+  
+  let colorIndex = 0;
+  const traces = [];
+  
+  percentageData.forEach(item => {
+    traces.push(this.createTrace(item, colors[colorIndex++ % colors.length], 'y', theme));
+  });
+  
+  absoluteData.forEach(item => {
+    traces.push(this.createTrace(item, colors[colorIndex++ % colors.length], 'y2', theme));
+  });
+  
+  return traces;
+},
 
   createTrace(item, color, yaxis) {
     return {
@@ -236,84 +245,79 @@ const ChartManager = {
     };
   },
 
-  prepareLayout(chartIndex, chartData) {
-    const percentageData = chartData.filter(item => item.type === 'percentage');
-    const absoluteData = chartData.filter(item => item.type === 'absolute');
-    
-    const layout = {
-      xaxis: {
-        title: {
-          font: { size: 14, color: '#4a5568' }
-        },
-        gridcolor: 'rgba(0, 0, 0, 0.05)',
-        linecolor: '#e2e8f0',
-        linewidth: 2,
-        tickangle: -45,
-        tickfont: { size: 11, color: '#718096' },
-        showgrid: true,
-        zeroline: false
+  prepareLayout(chartIndex, chartData, theme) {
+  const percentageData = chartData.filter(item => item.type === 'percentage');
+  const absoluteData = chartData.filter(item => item.type === 'absolute');
+  
+  const layout = {
+    xaxis: {
+      title: {
+        font: { size: 14, color: theme === 'dark' ? '#e2e8f0' : '#4a5568' }
       },
-      yaxis: {
-        title: {
-          text: percentageData.length > 0 ? '<b>Проценты (%)</b>' : '<b>Значения</b>',
-          font: { size: 14, color: '#4a5568' }
-        },
-        side: 'left',
-        gridcolor: 'rgba(0, 0, 0, 0.05)',
-        linecolor: '#e2e8f0',
-        linewidth: 2,
-        showgrid: true,
-        zeroline: false,
-        tickfont: { size: 11, color: '#718096' }
+      linecolor: theme === 'dark' ? '#4a5568' : '#e2e8f0',
+      linewidth: 2,
+      tickangle: -45,
+      tickfont: { size: 11, color: theme === 'dark' ? '#a0aec0' : '#718096' },
+      showgrid: false, // No grid lines
+      zeroline: false
+    },
+    yaxis: {
+      title: {
+        text: percentageData.length > 0 ? '<b>Проценты (%)</b>' : '<b>Значения</b>',
+        font: { size: 14, color: theme === 'dark' ? '#e2e8f0' : '#4a5568' }
       },
-      yaxis2: {
-        title: {
-          text: absoluteData.length > 0 ? '<b>Абсолютные значения</b>' : '',
-          font: { size: 14, color: '#4a5568' }
-        },
-        side: 'right',
-        overlaying: 'y',
-        gridcolor: 'rgba(0, 0, 0, 0.02)',
-        linecolor: '#e2e8f0',
-        linewidth: 2,
-        showgrid: false,
-        zeroline: false,
-        tickfont: { size: 11, color: '#718096' }
+      side: 'left',
+      linecolor: theme === 'dark' ? '#4a5568' : '#e2e8f0',
+      linewidth: 2,
+      showgrid: false, // No grid lines
+      zeroline: false,
+      tickfont: { size: 11, color: theme === 'dark' ? '#a0aec0' : '#718096' }
+    },
+    yaxis2: {
+      title: {
+        text: absoluteData.length > 0 ? '<b>Абсолютные значения</b>' : '',
+        font: { size: 14, color: theme === 'dark' ? '#e2e8f0' : '#4a5568' }
       },
-      legend: {
-        x: 0.5,
-        y: -0.4,
-        xanchor: 'center',
-        yanchor: 'top',
-        orientation: 'h',
-        font: { size: 12, color: '#4a5568' },
-        bgcolor: 'rgba(255, 255, 255, 0.9)',
-        bordercolor: 'rgba(0, 0, 0, 0.1)',
-        borderwidth: 1,
-        itemsizing: 'constant',
-        itemwidth: 30
-      },
-      margin: { l: 80, r: 80, t: 40, b: 200 },
-      showlegend: true,
-      hovermode: 'closest',
-      plot_bgcolor: '#fafafa',
-      paper_bgcolor: '#ffffff',
-      font: { 
-        family: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', 
-        color: '#2d3748' 
-      },
-      hoverdistance: 20,
-      spikedistance: 100
-    };
-    
-    if (percentageData.length === 0) {
-      delete layout.yaxis2;
-    } else if (absoluteData.length === 0) {
-      delete layout.yaxis2;
-    }
-    
-    return layout;
-  },
+      side: 'right',
+      overlaying: 'y',
+      linecolor: theme === 'dark' ? '#4a5568' : '#e2e8f0',
+      linewidth: 2,
+      showgrid: false, // No grid lines
+      zeroline: false,
+      tickfont: { size: 11, color: theme === 'dark' ? '#a0aec0' : '#718096' }
+    },
+    legend: {
+      x: 0.5,
+      y: -0.4,
+      xanchor: 'center',
+      yanchor: 'top',
+      orientation: 'h',
+      font: { size: 12, color: theme === 'dark' ? '#e2e8f0' : '#4a5568' },
+      bgcolor: theme === 'dark' ? 'rgba(45, 55, 72, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+      bordercolor: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+      borderwidth: 1,
+      itemsizing: 'constant',
+      itemwidth: 30
+    },
+    margin: { l: 80, r: 80, t: 40, b: 200 },
+    showlegend: true,
+    hovermode: 'closest',
+    plot_bgcolor: theme === 'dark' ? '#2d3748' : '#fafafa',
+    paper_bgcolor: theme === 'dark' ? '#1a202c' : '#ffffff',
+    font: { 
+      family: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', 
+      color: theme === 'dark' ? '#e2e8f0' : '#4a5568' 
+    },
+    hoverdistance: 20,
+    spikedistance: 100
+  };
+  
+  if (percentageData.length === 0 || absoluteData.length === 0) {
+    delete layout.yaxis2;
+  }
+  
+  return layout;
+},
 
   closeChart(chartIndex) {
     const chartContainer = document.getElementById(`chart_${chartIndex}`);

@@ -1,35 +1,62 @@
 const TableManager = {
   config: null,
 
+  paramToTagClass: {
+    'входной_поток_всего': 'tag-blue',
+    'цифровые_сервисы_всего': 'tag-green',
+    'роботы': 'tag-purple',
+    'чат_боты': 'tag-brown',
+    'входной_поток_АС_ОЗ': 'tag-yellow',
+    'цифровые_сервисы_АС_ОЗ': 'tag-blue',
+    'входной_поток_не_АС_ОЗ': 'tag-green', 
+    'цифровые_сервисы_не_АС_ОЗ': 'tag-purple',
+    'самостоятельность': 'tag-brown',
+    'процент_цифровых_сервисов': 'tag-yellow',
+    'процент_роботов': 'tag-blue',
+    'процент_чат_ботов': 'tag-green',
+    'процент_АС_О': 'tag-purple',
+    'процент_не_АС_ОЗ': 'tag-brown',
+    'процент_самостоятельности': 'tag-yellow',
+
+    'default': 'tag-blue'
+  },
+  
+
+
   init(config) {
     this.config = config;
     this.setupEventListeners();
     
-    // Инициализируем настройки графиков
+    // Initialize chart settings
     if (!window.AppState.chartSettings) {
       window.AppState.chartSettings = [];
     }
     
-    // Инициализируем диапазоны дат для каждого списка
+    // Initialize date ranges for each list
     if (!window.AppState.dateRangesByList) {
       window.AppState.dateRangesByList = [{ startDate: '', endDate: '' }];
+    }
+    
+    // Initialize pinned dates array
+    if (!window.AppState.pinnedDates) {
+      window.AppState.pinnedDates = [];
     }
   },
 
   setupEventListeners() {
-    // Кнопка поворота таблицы
+    // Table transpose button
     document.getElementById(this.config.toggleButton).addEventListener('click', () => {
       window.AppState.transposed = !window.AppState.transposed;
       this.render();
       this.updateToggleButtonText();
     });
 
-    // Кнопка загрузки данных
+    // Data load button
     document.getElementById(this.config.loadDataButton).addEventListener('click', () => {
       this.loadData();
     });
 
-    // Обновляем текст кнопки при инициализации
+    // Update button text on initialization
     this.updateToggleButtonText();
   },
 
@@ -42,16 +69,16 @@ const TableManager = {
     window.AppState.selectedParamsByList.push([]);
     window.AppState.activeListIndex = window.AppState.selectedParamsByList.length - 1;
     
-    // Добавляем новый диапазон дат для нового списка
+    // Add new date range for the new list
     window.AppState.dateRangesByList.push({ startDate: '', endDate: '' });
     
-    // Синхронизируем состояние графиков
+    // Synchronize chart state
     this.syncChartsState();
     
     this.renderTabs();
     this.render();
     
-    // Переключаемся на новый таб
+    // Switch to the new tab
     this.switchTab(window.AppState.activeListIndex);
   },
 
@@ -103,7 +130,7 @@ const TableManager = {
       
       console.log("Запрос к URL:", url.toString());
       
-      // Показываем индикатор загрузки
+      // Show loading state
       this.showLoadingState();
       
       const response = await fetch(url.toString());
@@ -120,7 +147,7 @@ const TableManager = {
         return;
       }
       
-      // Сбрасываем состояние приложения
+      // Reset application state
       this.resetAppState(data);
       
       this.render();
@@ -138,6 +165,7 @@ const TableManager = {
     window.AppState.originalData = data;
     window.AppState.selectedParamsByList = [[]];
     window.AppState.selectedDates = [];
+    window.AppState.pinnedDates = [];
     window.AppState.activeListIndex = 0;
     window.AppState.chartsVisible = [false];
     window.AppState.dateRangesByList = [{ startDate: '', endDate: '' }];
@@ -170,13 +198,24 @@ const TableManager = {
     this.render();
   },
 
+  togglePinnedDate(date) {
+    const dateStr = new Date(date).toLocaleDateString("ru-RU");
+    const index = window.AppState.pinnedDates.indexOf(dateStr);
+    if (index >= 0) {
+      window.AppState.pinnedDates.splice(index, 1);
+    } else {
+      window.AppState.pinnedDates.push(dateStr);
+    }
+    this.render();
+  },
+
   updateDateRange(listIndex, startDate, endDate) {
     window.AppState.dateRangesByList[listIndex] = { startDate, endDate };
     
-    // Обновляем информацию о диапазоне
+    // Update date range info
     this.updateDateRangeInfo(listIndex, startDate, endDate);
     
-    // Если это активный список, обновляем отображение
+    // If this is the active list, update rendering
     if (listIndex === window.AppState.activeListIndex) {
       this.render();
     }
@@ -217,7 +256,7 @@ const TableManager = {
     const startDate = new Date(startInput.value);
     const endDate = new Date(endInput.value);
     
-    // Сброс классов
+    // Reset classes
     startInput.classList.remove('error', 'success');
     endInput.classList.remove('error', 'success');
     
@@ -258,15 +297,15 @@ const TableManager = {
     const container = document.getElementById(this.config.listsContainer);
     container.innerHTML = "";
     
-    // Синхронизируем состояние графиков с количеством списков
+    // Synchronize chart state and date ranges
     this.syncChartsState();
     this.syncDateRanges();
     
-    // Создаем контейнер для табов
+    // Create tabs container
     const tabsContainer = document.createElement('div');
     tabsContainer.className = 'tabs-container';
 
-    // Проверяем существование tab-nav
+    // Check for existing tab-nav
     let tabNav = document.querySelector('.tab-nav');
     if (!tabNav) {
       tabNav = document.createElement('div');
@@ -274,20 +313,17 @@ const TableManager = {
       tabsContainer.appendChild(tabNav);
     }
     
-    // Очищаем существующий tab-nav
+    // Clear existing tab-nav
     tabNav.innerHTML = '';
     
-   39
-    // Создаем кнопки табов
+    // Create tab buttons
     window.AppState.selectedParamsByList.forEach((params, index) => {
       const tabBtn = document.createElement('button');
       tabBtn.className = 'tab-btn';
 
-    // Кнопка удаления списка
-    const KillBtn = document.createElement('button');
-    
-
-
+      // Delete list button
+      const killBtn = document.createElement('button');
+      
       if (index === window.AppState.activeListIndex) {
         tabBtn.classList.add('active');
       }
@@ -299,15 +335,14 @@ const TableManager = {
       paramCounter.className = 'param-counter';
       paramCounter.textContent = params.length;
       
-      
       tabBtn.appendChild(paramCounter);
       tabBtn.appendChild(tabLabel);
-      KillBtn.className = 'btn btn-xs btn-overlay right';
-    KillBtn.textContent = '🗙';
-    KillBtn.addEventListener('click', () => {
+      killBtn.className = 'btn btn-xs btn-overlay right';
+      killBtn.textContent = '🗙';
+      killBtn.addEventListener('click', () => {
         this.deleteList(window.AppState.activeListIndex);
-    });
-        tabBtn.appendChild(KillBtn);
+      });
+      tabBtn.appendChild(killBtn);
       
       tabBtn.addEventListener('click', () => {
         this.switchTab(index);
@@ -316,7 +351,7 @@ const TableManager = {
       tabNav.appendChild(tabBtn);
     });
     
-    // Кнопка добавления нового таба
+    // Add new tab button
     const addTabBtn = document.createElement('button');
     addTabBtn.className = 'btn btn-xs btn-secondary';
     addTabBtn.textContent = '+';
@@ -324,7 +359,7 @@ const TableManager = {
       this.addNewList();
     });
 
-    // Кнопка сокрытия/показа tab-content-container
+    // Toggle tab content visibility button
     const toggleTabContentBtn = document.createElement('button');
     toggleTabContentBtn.className = 'btn btn-xs btn-secondary end';
     toggleTabContentBtn.textContent = wasHidden ? '+' : '–';
@@ -336,41 +371,39 @@ const TableManager = {
       }
     });
 
-    // Кнопка показа/скрытия графика
-    const GraphBtn = document.createElement('button');
-    GraphBtn.className = 'btn btn-xs btn-secondary first';
-    GraphBtn.textContent = window.AppState.chartsVisible[window.AppState.activeListIndex] ? '👁' : '👁';
-    GraphBtn.addEventListener('click', () => {
+    // Show/hide chart button
+    const graphBtn = document.createElement('button');
+    graphBtn.className = 'btn btn-xs btn-secondary first';
+    graphBtn.textContent = window.AppState.chartsVisible[window.AppState.activeListIndex] ? '👁' : '👁';
+    graphBtn.addEventListener('click', () => {
       const isChartVisible = window.AppState.chartsVisible[window.AppState.activeListIndex];
       if (isChartVisible) {
         window.ChartManager.closeChart(window.AppState.activeListIndex);
       } else {
         window.ChartManager.showChart(window.AppState.activeListIndex);
       }
-      // Обновляем текст кнопки после переключения
-      GraphBtn.textContent = window.AppState.chartsVisible[window.AppState.activeListIndex] ? '👁,' : '👁';
+      // Update button text after toggling
+      graphBtn.textContent = window.AppState.chartsVisible[window.AppState.activeListIndex] ? '👁' : '👁';
     });
 
-
-    
     const tabBtnContainer = document.createElement('div');
     tabBtnContainer.className = 'tab-btn-container end';
 
     tabNav.appendChild(addTabBtn);
     tabNav.appendChild(tabBtnContainer);
-    tabNav.appendChild(GraphBtn);
+    tabNav.appendChild(graphBtn);
 
     tabBtnContainer.appendChild(toggleTabContentBtn);
     tabsContainer.appendChild(tabNav);
     
-    // Создаем контейнер для содержимого табов
+    // Create tab content container
     const tabContentContainerNew = document.createElement('div');
     tabContentContainerNew.className = 'tab-content-container';
     if (wasHidden) {
       tabContentContainerNew.classList.add('hidden');
     }
     
-    // Создаем контент табов
+    // Create tab content
     window.AppState.selectedParamsByList.forEach((params, index) => {
       const tabContent = this.createTabContent(params, index);
       tabContentContainerNew.appendChild(tabContent);
@@ -389,7 +422,7 @@ const TableManager = {
       tabContent.style.display = 'none';
     }
     
-    // Контейнер для тегов
+    // Tags container
     const tagsContainer = document.createElement('div');
     tagsContainer.className = 'tags-container';
     
@@ -403,6 +436,11 @@ const TableManager = {
         const tag = document.createElement('span');
         tag.className = 'tag';
         tag.textContent = param;
+        
+        // Assign tag class based on parameter mapping
+        const tagClass = this.paramToTagClass[param] || this.paramToTagClass['default'];
+        tag.classList.add(tagClass);
+        
         tag.addEventListener('click', () => {
           this.toggleParam(param);
         });
@@ -410,7 +448,7 @@ const TableManager = {
       });
     }
     
-    // Контейнер для выбора дат
+    // Date filters container
     const dateFilters = this.createDateFilters(index);
     
     tabContent.appendChild(tagsContainer);
@@ -465,7 +503,7 @@ const TableManager = {
     dateFilters.appendChild(endFilterDiv);
     dateFilters.appendChild(infoDiv);
     
-    // Обработчики событий
+    // Event listeners
     startInput.addEventListener('change', (e) => {
       this.validateDateRange(startInput, endInput);
       this.updateDateRange(index, e.target.value, endInput.value);
@@ -482,7 +520,7 @@ const TableManager = {
   switchTab(index) {
     window.AppState.activeListIndex = index;
     
-    // Обновляем активные кнопки
+    // Update active buttons
     document.querySelectorAll('.tab-btn').forEach((btn, i) => {
       if (i === index) {
         btn.classList.add('active');
@@ -491,7 +529,7 @@ const TableManager = {
       }
     });
     
-    // Показываем/скрываем контент
+    // Show/hide content
     document.querySelectorAll('.tab-content').forEach((content, i) => {
       if (i === index) {
         content.style.display = 'block';
@@ -500,8 +538,7 @@ const TableManager = {
       }
     });
     
-    
-    // Обновляем таблицу
+    // Update table
     this.render();
   },
 
@@ -521,12 +558,12 @@ const TableManager = {
       return;
     }
 
-    // Фильтруем данные по диапазону дат активного списка
+    // Filter data by active list's date range
     const activeListDates = this.getSelectedDatesForList(window.AppState.activeListIndex);
     const filteredData = activeListDates.length > 0 
       ? formattedData.filter(entry => 
           activeListDates.some(date => 
-            new Date(date).getTime() === entry.дата_отчета_raw.getTime()
+            new Date(date).toLocaleDateString("ru-RU") === entry.дата_отчета
           )
         )
       : formattedData;
@@ -575,12 +612,30 @@ const TableManager = {
     const tbody = document.createElement("tbody");
     const sortedData = this.getSortedData(formattedData);
 
-    sortedData.forEach(entry => {
+    // Separate pinned and unpinned data
+    const pinnedData = sortedData.filter(entry => window.AppState.pinnedDates.includes(entry.дата_отчета));
+    const unpinnedData = sortedData.filter(entry => !window.AppState.pinnedDates.includes(entry.дата_отчета));
+
+    // Sort pinned dates in order of pinning
+    const sortedPinnedData = window.AppState.pinnedDates
+      .map(date => pinnedData.find(entry => entry.дата_отчета === date))
+      .filter(entry => entry);
+
+    const finalData = [...sortedPinnedData, ...unpinnedData];
+
+    finalData.forEach(entry => {
       const row = document.createElement("tr");
+      if (window.AppState.pinnedDates.includes(entry.дата_отчета)) {
+        row.classList.add("pinned-date-row");
+      }
 
       const dateCell = document.createElement("td");
       dateCell.textContent = entry.дата_отчета;
       dateCell.className = "date-column";
+      if (window.AppState.pinnedDates.includes(entry.дата_отчета)) {
+        dateCell.classList.add("selected");
+      }
+      dateCell.addEventListener("click", () => this.togglePinnedDate(entry.дата_отчета_raw));
       row.appendChild(dateCell);
 
       fields.filter(f => f !== "дата_отчета").forEach(field => {
@@ -605,10 +660,25 @@ const TableManager = {
     headerRow.appendChild(paramHeader);
 
     const sortedDates = this.getSortedData(formattedData);
-    sortedDates.forEach(entry => {
+    // Separate pinned and unpinned dates
+    const pinnedDates = sortedDates.filter(entry => window.AppState.pinnedDates.includes(entry.дата_отчета));
+    const unpinnedDates = sortedDates.filter(entry => !window.AppState.pinnedDates.includes(entry.дата_отчета));
+
+    // Sort pinned dates in order of pinning
+    const sortedPinnedDates = window.AppState.pinnedDates
+      .map(date => pinnedDates.find(entry => entry.дата_отчета === date))
+      .filter(entry => entry);
+
+    const finalDates = [...sortedPinnedDates, ...unpinnedDates];
+
+    finalDates.forEach(entry => {
       const th = document.createElement("th");
       th.textContent = entry.дата_отчета;
       th.className = "date-column";
+      if (window.AppState.pinnedDates.includes(entry.дата_отчета)) {
+        th.classList.add("selected");
+      }
+      th.addEventListener("click", () => this.togglePinnedDate(entry.дата_отчета_raw));
       headerRow.appendChild(th);
     });
 
@@ -629,9 +699,12 @@ const TableManager = {
       paramCell.addEventListener("click", () => this.toggleParam(field));
       row.appendChild(paramCell);
 
-      sortedDates.forEach(entry => {
+      finalDates.forEach(entry => {
         const cell = document.createElement("td");
         cell.textContent = entry[field];
+        if (window.AppState.pinnedDates.includes(entry.дата_отчета)) {
+          cell.classList.add("pinned-date-column");
+        }
         row.appendChild(cell);
       });
 
@@ -673,23 +746,23 @@ const TableManager = {
       return;
     }
     
-    // Закрываем график если он открыт
+    // Close chart if open
     if (window.AppState.chartsVisible && window.AppState.chartsVisible[index]) {
       window.ChartManager.closeChart(index);
     }
     
-    // Удаляем список
+    // Remove list
     window.AppState.selectedParamsByList.splice(index, 1);
     
-    // Удаляем диапазон дат
+    // Remove date range
     window.AppState.dateRangesByList.splice(index, 1);
     
-    // Удаляем состояние графика
+    // Remove chart state
     if (window.AppState.chartsVisible) {
       window.AppState.chartsVisible.splice(index, 1);
     }
     
-    // Корректируем активный индекс
+    // Adjust active index
     if (window.AppState.activeListIndex >= index) {
       window.AppState.activeListIndex = Math.max(0, window.AppState.activeListIndex - 1);
     }
@@ -698,7 +771,7 @@ const TableManager = {
     this.render();
   },
 
-  // Алиас для совместимости
+  // Alias for compatibility
   renderLists() {
     this.renderTabs();
   }

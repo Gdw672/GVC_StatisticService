@@ -1,14 +1,27 @@
 :root {
     /* Colors */
-    --primary-color: #ff5d5d;
-    --primary-hover: #ff4398;
-    --primary-dark: #c02a54;
-    --danger-color: #e53e3e;
-    --danger-hover: #c53030;
+    --primary-color: #ff5d5d; 
+    --primary-hover: #ff475a;
+    --secondary-color: #76aae9;
+    --primary-dark: #b6424d;
+    --danger-color: #ff5d5d;
+    --danger-hover: #ff1919;
     --success-color: #48bb78;
     --success-hover: #38a169;
     --success-dark: #2f855a;
-    
+
+    --tag-blue: #deeef3;
+    --tag-green: #e5fff6;
+    --tag-purple: #f0ebff;
+    --tag-brown: #eae3dc;
+    --tag-yellow:#f7ffe5;
+
+    --tag-blue-text: #0c3065;
+    --tag-green-text: #358177;
+    --tag-purple-text: #7642b9;
+    --tag-brown-text: #6d4238;
+    --tag-yellow-text:#6e842d;
+
     /* Grays */
     --gray-50: #f8f9fa;
     --gray-100: #f7fafc;
@@ -43,7 +56,7 @@
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
     
     /* Typography */
-    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-family: Mont, sans-serif,'Consolas', Roboto, sans-serif;
     --font-size-xs: 11px;
     --font-size-sm: 12px;
     --font-size-md: 14px;
@@ -55,6 +68,13 @@
     /* Transitions */
     --transition-fast: 0.2s ease;
     --transition-medium: 0.3s ease;
+}
+
+@font-face {
+  font-family: 'Consolas';
+  src: url('/consolas.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
 }
 
 /* Reset */
@@ -229,6 +249,7 @@ body.scrolled .header:focus-within {
     font-weight: 1000;
     height: 20px !important; 
     width: 10px !important;
+    align-items: center;
 }
 
 
@@ -313,9 +334,10 @@ body.scrolled .header:focus-within {
     border: var(--border-width-lg) solid var(--border-color);
     border-radius: var(--border-radius);
     font-size: var(--font-size-md);
+    font-weight: 400;
     transition: border-color var(--transition-fast);
     font-family: inherit;
-    background-color: white;
+    background-color: var(--gray-50);
 }
 
 .form-input:focus {
@@ -388,6 +410,7 @@ body.scrolled .header:focus-within {
     border-radius: var(--border-radius);
     margin: var(--space-sm) 0;
     border: var(--border-width) solid var(--border-color);
+    width:30%
 }
 
 .date-range-info {
@@ -427,17 +450,6 @@ body.scrolled .header:focus-within {
     border-color: var(--gray-400);
 }
 
-.table-container::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: var(--space-lg);
-    height: var(--space-lg);
-    background: linear-gradient(-45deg, transparent 30%, #9ca3af 30%, #9ca3af 40%, transparent 40%, transparent 60%, #9ca3af 60%, #9ca3af 70%, transparent 70%);
-    pointer-events: none;
-    z-index: 10;
-}
 
 .table-container table {
     width: 100%;
@@ -507,14 +519,18 @@ body.scrolled .header:focus-within {
 
 .selected {
     background-color: white !important;
-    outline: var(--border-width-lg) solid var(--primary-color);
 }
 
 th.selected, td.selected {
-    background-color: var(--primary-color) !important;
-    color: white !important;
+    background-color: var(--secondary-color) !important;
+    color: rgb(255, 255, 255) !important;
     font-weight: bold;
 }
+
+  .pinned-date-column {
+    color: black !important;
+    font-weight: 500;
+  }
 
 /* Scrollbars */
 .table-container::-webkit-scrollbar {
@@ -543,9 +559,11 @@ th.selected, td.selected {
 
 /* Tags */
 .tag {
-    display: inline-block;
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-    color: white;
+    
+}
+
+
+.tag-blue { background: var(--tag-blue); color: var(--tag-blue-text); display: inline-block;
     padding: var(--space-xs) var(--space-sm);
     margin: var(--space-xs) var(--space-xs) var(--space-xs) 0;
     border-radius: var(--space-xs);
@@ -554,11 +572,74 @@ th.selected, td.selected {
     white-space: nowrap;
     box-shadow: var(--shadow-sm);
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: all var(--transition-fast);} 
+
+.tag-green { background: var(--tag-green); color: var(--tag-green-text); display: inline-block;
+    padding: var(--space-xs) var(--space-sm);
+    margin: var(--space-xs) var(--space-xs) var(--space-xs) 0;
+    border-radius: var(--space-xs);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);}
+
+.tag-purple { background: var(--tag-purple); color: var(--tag-purple-text);display: inline-block;
+    padding: var(--space-xs) var(--space-sm);
+    margin: var(--space-xs) var(--space-xs) var(--space-xs) 0;
+    border-radius: var(--space-xs);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);}
+
+.tag-brown { background: var(--tag-brown); color: var(--tag-brown-text); display: inline-block;
+    padding: var(--space-xs) var(--space-sm);
+    margin: var(--space-xs) var(--space-xs) var(--space-xs) 0;
+    border-radius: var(--space-xs);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);}
+
+.tag-yellow { background: var(--tag-yellow); color: var(--tag-yellow-text); display: inline-block;
+    padding: var(--space-xs) var(--space-sm);
+    margin: var(--space-xs) var(--space-xs) var(--space-xs) 0;
+    border-radius: var(--space-xs);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);}
+
+
+.tag-blue:hover {
+    overlay: rgba(var(--tag-blue), 0.3);
+    transform: translateY(-1px);
 }
 
-.tag:hover {
-    background: var(--primary-hover);
+.tag-green:hover {
+    overlay: rgba(var(--tag-green), 0.3);
+    transform: translateY(-1px);
+}
+
+.tag-purple:hover {
+    overlay: rgba(var(--tag-purple), 0.3);
+    transform: translateY(-1px);
+}
+
+.tag-brown:hover {
+    overlay: rgba(var(--tag-brown), 0.3);
+    transform: translateY(-1px);
+}
+.tag-yellow:hover {
+    overlay: rgba(var(--tag-yellow), 0.3);
     transform: translateY(-1px);
 }
 
