@@ -171,8 +171,8 @@ const TableManager = {
   },
 
 async checkData() {
+  
   try {
-    // Напрямую используем ID из HTML
     const startDate = document.getElementById('checkStartDate').value;
     const endDate = document.getElementById('checkEndDate').value;
     

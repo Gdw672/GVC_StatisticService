@@ -32,11 +32,11 @@
       <div id="dateFilters" class="date-filters">
         <div class="date-filter">
           <label for="startDate">Дата начала:</label>
-          <input type="date" id="startDate" class="form-input" value="2025-07-15">
+          <input type="date" id="startDate" class="form-input" value="2025-07-01">
         </div>
         <div class="date-filter">
           <label for="endDate">Дата окончания:</label>
-          <input type="date" id="endDate" class="form-input" value="2025-07-18">
+          <input type="date" id="endDate" class="form-input" value="2025-07-31">
         </div>
         <button id="loadDataButton" class="btn btn-primary">Нет базы данных</button>
           <button id="downloadHideButton" class="btn btn-xs btn-secondary right">⇩</button>
@@ -345,7 +345,10 @@ document.addEventListener('DOMContentLoaded', function() {
       toggleButton: "toggleButton",
       startDateInput: "startDate",
       endDateInput: "endDate",
-      loadDataButton: "loadDataButton"
+      loadDataButton: "loadDataButton",
+      checkApiUrl: 'http://your-server.com/api/Database/redownloadReportsByDate',
+      checkStartDateInput: 'checkStartDate',
+      checkEndDateInput: 'checkEndDate',
     };
 
     window.AppState = {
