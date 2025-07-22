@@ -7,16 +7,27 @@
   <script src="plotly-3.0.1.min.js" charset="utf-8"></script>
 </head>
 <body>
-   <div class="header">
+  <div class="header">
     <div class="container">
       <div class="header-content">
         <h1>Отчет по данным</h1>
+        <div class="log-container">
+          <div class="log-box">
+              
+        </div>
+         </div>
+
+        <div class="authsect">
+          <input id="login" class="form-input hidden" type="text" placeholder="GVC\ФамилияИО" required>
+          <input id="password" class="form-input hidden" type="password" placeholder="Пароль" maxlength="30" minlength="14" required>
+          <button id="savepasswordButton" class="btn btn-xs btn-secondary btn-password hidden">!</button>
+          <button id="passwordButton" class="btn btn-xs btn-secondary btn-password">⛭</button>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="container">
-
     <div class="filters-section">
       <div id="dateFilters" class="date-filters">
         <div class="date-filter">
@@ -27,151 +38,305 @@
           <label for="endDate">Дата окончания:</label>
           <input type="date" id="endDate" class="form-input" value="2025-07-18">
         </div>
-        <button id="loadDataButton" class="btn btn-primary">Загрузить данные</button>
-          <div class="date-filter-download right">
-            <button id="downloadButton" class="btn btn-xs btn-secondary">⇩</button>
-            <div class="date-filter"> 
-            <label for="downloadDate">Отчет за три дня:</label>
-            <input type="date" id="downloadDate" class="form-input" value="2025-07-17">
-            </div>
-          </div>
-      </div> 
+        <button id="loadDataButton" class="btn btn-primary">Нет базы данных</button>
+          <button id="downloadHideButton" class="btn btn-xs btn-secondary right">⇩</button>
+      </div>
     </div>
     
+
+      <div class="section hidden" id="downloadContainer">
+        <div class="download-section">
+          <p>Выберите диапазон дат для проверки данных:</p>
+          <div class="date-filters">
+            <div class="date-filter">
+              <label for="downloadstartDate">Дата начала:</label>
+              <input type="date" id="checkStartDate" class="form-input" value="2025-07-15">
+            </div>
+            <div class="date-filter">
+              <label for="downloadendDate">Дата окончания:</label>
+              <input type="date" id="checkEndDate" class="form-input" value="2025-07-18">
+            </div>
+            <button id="checkDataButton" class="btn btn-primary">Проверить</button>
+          </div>
+        </div>
+    </div>
+    </div>
+    
+<div class="tablecontainer"> 
     <div class="section table-section">
       <div class="section-header">
-        <div class="section-name-header">  
-          <h2 class="section-title">Таблица </h2>
+        <div class="section-name-header">
+          <h2 class="section-title">Таблица</h2>
+  
           <button id="toggleButton" class="btn btn-secondary">Изменить вид</button>
+          <button id="downloadCSV-Button" class="btn btn-secondary">Скачать в csv</button>
         </div>
 
+        <button id="resetButton" class="btn btn-secondary btn-xs right">↻</button>
         <div class="section-slider">
+          
           <div class="slider-container">
             <input type="range" min="0" max="100" value="50" class="sliderV" id="mySliderV">
           </div>
-        <div class="section-sl
           <div class="slider-container">
             <input type="range" min="0" max="100" value="50" class="sliderH" id="mySliderH">
           </div>
         </div>
       </div>
+      
 
       <div id="tableContainer" class="table-container"></div>
       <div class="resize-handle-right"></div>
-    </div>
-
-
-      <div id="listsContainer" class="section lists-container">
-         
       </div>
+ </div>
 
-
+    <div class="container">
+    <div id="listsContainer" class="section lists-container"></div>
     <div class="section">
       <div id="chartsContainer" class="charts-grid"></div>
     </div>
   </div>
 
-  <!-- Подключаем модули -->
+  
+
   <script src="table-manager.js"></script>
   <script src="chart-manager.js"></script>
-  
   <script>
 
+  let lastScrollTop = 0;
+  window.addEventListener('scroll', () => {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    document.body.classList.toggle('scrolled', scrollTop > 1);
+    lastScrollTop = scrollTop;
+  });
 
-
-let lastScrollTop = 0;
-window.addEventListener('scroll', () => {
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  if (scrollTop > 50) { // Скрываем после прокрутки на 50px
-    document.body.classList.add('scrolled');
-  } else {
-    document.body.classList.remove('scrolled');
-  }
-  lastScrollTop = scrollTop;
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    const tabBtn = document.querySelector('.tab-btn');
-    const tabContent = document.querySelector('.tab-content');
-    
-    if (tabBtn && tabContent) {
-        tabBtn.addEventListener('click', function() {
-            // Переключаем класс active у кнопки
-            tabBtn.classList.toggle('active');
-            
-            // Переключаем видимость контента
-            if (tabContent.style.display === 'none') {
-                tabContent.style.display = '';
-            } else {
-                tabContent.style.display = 'none';
-            }
-        });
-    }
-});
-
+  
+// Обновленный скрипт управления таблицей и интерфейсом
 
 const sliderV = document.getElementById("mySliderV");
 const sliderH = document.getElementById("mySliderH");
+const resetButton = document.getElementById("resetButton");
+const downloadCSVButton = document.getElementById("downloadCSV-Button");
 
-// Функция обновления стилей
+// --- Упрощенная функция применения стилей от ползунков ---
 function updateStyles() {
-    // Получаем значения слайдеров
-    const valueV = sliderV.value;
-    const valueH = sliderH.value;
+  const valueV = sliderV.value;
+  const valueH = sliderH.value;
 
-if (document.querySelector(".table-container table")) {
-   // Применяем значения слайдеров к стилям (исключая первую ячейку)
-  if (document.querySelector(".table-container table")) {
-    // Применяем значения слайдеров к стилям (исключая первую ячейку)
-    document.querySelectorAll(".table-container th:not(:first-child)").forEach(th => {
-        th.style.fontSize = Math.max(5, valueV / 5) + "px";
-        th.style.padding = Math.max(1, valueV / 10) + "px";
-        
-        // Плавные переходы для всех свойств
-        th.style.transition = "all 0.2s ease";
-        
-        // Перенос текста для маленьких значений
-        if (valueV < 50) {
-            th.style.whiteSpace = "normal"; // разрешает перенос
-            th.style.wordWrap = "break-word"; // переносит длинные слова
-            th.style.wordBreak = "break-word"; // дополнительная поддержка
-        } else {
-            th.style.whiteSpace = "nowrap"; // запрещает перенос
-        }
-        
-        // Плавное изменение по вашей логике
-        if (valueV < 30) {
-            th.style.fontWeight = 100 + (valueV / 30) * 500;
-            th.style.letterSpacing = (0.2 * (30 - valueV) / 30) + "px";
-            th.style.lineHeight = 3 - ((valueV / 30) * 1.9);
-        } else if (valueV > 70) {
-            th.style.fontWeight = 600 + ((valueV - 70) / 30) * 100;
-            th.style.lineHeight = 1.1 - ((valueV - 70) / 30) * 1;
-            th.style.letterSpacing = "0px";
-        } else {
-            th.style.fontWeight = "700";
-            th.style.lineHeight = "1.1";
-            th.style.letterSpacing = "0px";
-        }
+  const table = document.querySelector(".table-container table");
+  if (!table) return;
+
+  const ths = table.querySelectorAll("th");
+  const tds = table.querySelectorAll("td");
+
+  const fontSize = 10 + (valueV * 0.2); // от 10px до 30px
+  const padding = 2 + (valueV * 0.1);   // от 2px до 12px
+  const lineHeight = 1 + valueH / 100; // от 1 до 2
+
+  table.style.lineHeight = lineHeight;
+
+  [...ths, ...tds].forEach(cell => {
+    cell.style.fontSize = fontSize + "px";
+    cell.style.padding = padding + "px";
+  });
+}
+
+sliderV.addEventListener("input", () => {
+  updateStyles();
+  persistStyleState();
+});
+
+sliderH.addEventListener("input", () => {
+  updateStyles();
+  persistStyleState();
+});
+
+// --- Сброс значений ползунков ---
+resetButton.addEventListener("click", () => {
+  sliderV.value = 50;
+  sliderH.value = 50;
+  updateStyles();
+  persistStyleState();
+});
+
+// --- Скачивание CSV с логом ---
+
+downloadCSVButton.addEventListener("click", () => {
+  try {
+    const container = document.getElementById(TableManager.config.tableContainer);
+    const table = container.querySelector("table");
+    if (!table) throw new Error("Таблица не найдена");
+
+    const isTransposed = window.AppState.transposed;
+    const rawData = TableManager.getRawData(); // исходные значения из БД
+    const formattedData = rawData.map(entry => ({ ...entry }));
+    const dates = formattedData.map(d => new Date(d.дата_отчета)).sort((a, b) => a - b);
+
+    // Форматирование дат
+    const startDate = dates[0] ? new Date(dates[0]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+    const endDate = dates[dates.length - 1] ? new Date(dates[dates.length - 1]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+
+    const fields = Object.keys(formattedData[0] || {}).filter(f => f !== "id");
+
+    let csv = [];
+
+    if (!isTransposed) {
+      // Горизонтальная таблица
+      const header = ["Дата", ...fields.filter(f => f !== "дата_отчета")];
+      csv.push(header.join(";"));
+
+      formattedData.forEach(entry => {
+        const row = [
+          new Date(entry.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'), // Форматируем дату
+          ...header.slice(1).map(key => entry[key])
+        ];
+        csv.push(row.join(";"));
+      });
+
+    } else {
+      // Транспонированная таблица
+      const header = ["Показатель", ...formattedData.map(d => new Date(d.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'))]; // Форматируем все даты
+      csv.push(header.join(";"));
+
+      fields.filter(f => f !== "дата_отчета").forEach(field => {
+        const row = [field, ...formattedData.map(d => d[field])];
+        csv.push(row.join(";"));
+      });
+    }
+
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
+    const filename = `${startDate}///${endDate}.csv`;
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+
+    logMessage("CSV успешно скачан: " + filename);
+  } catch (e) {
+    logMessage("Ошибка при скачивании CSV: " + e.message);
+  }
+});
+
+
+
+
+
+// --- Сохранение/восстановление стиля ---
+function persistStyleState() {
+  localStorage.setItem("sliderV", sliderV.value);
+  localStorage.setItem("sliderH", sliderH.value);
+}
+
+function restoreStyleState() {
+  sliderV.value = localStorage.getItem("sliderV") || 50;
+  sliderH.value = localStorage.getItem("sliderH") || 50;
+  updateStyles();
+}
+
+// --- Выбор ячейки ---
+document.addEventListener("click", (e) => {
+  if (e.target.tagName === 'TD') {
+    e.target.classList.add("selectedcell");
+  }
+});
+
+// --- Инициализация при загрузке ---
+document.addEventListener("DOMContentLoaded", () => {
+  restoreStyleState();
+
+  // Переопределим рендер таблицы для применения стилей
+  const originalRenderTable = TableManager.renderTable;
+  TableManager.renderTable = function (...args) {
+    originalRenderTable.apply(this, args);
+    updateStyles();
+  };
+});
+
+
+
+// --- Логгер ---
+function logMessage(msg) {
+  const logBox = document.querySelector(".log-box");
+  const placeholder = document.querySelector(".h5");
+
+  if (placeholder) placeholder.remove();
+
+  const time = new Date().toLocaleTimeString();
+  const entry = document.createElement("p");
+  entry.textContent = `[${time}] ${msg}`;
+
+  logBox.prepend(entry);
+
+  // Проверяем, прокручено ли в самый низ
+  const atBottom = logBox.scrollHeight - logBox.scrollTop === logBox.clientHeight;
+  if (atBottom) {
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+
+  const checkDataButton = document.getElementById('checkDataButton');
+  if (checkDataButton) {
+    checkDataButton.addEventListener('click', function() {
+      TableManager.checkData();
     });
-}
-
-    document.querySelector(".table-container table").style.lineHeight = (valueH / 100) + 0.001;  // Например, от 0 до 1
-}
-}
-
-// Добавляем события для слайдеров
-sliderV.addEventListener("input", updateStyles);
-sliderH.addEventListener("input", updateStyles);
+  }
+});
 
 
 
+  document.addEventListener('DOMContentLoaded', async () => {
+    const passBtn = document.getElementById('passwordButton');
+    const login = document.getElementById('login');
+    const password = document.getElementById('password');
+    const saveBtn = document.getElementById('savepasswordButton');
+    const dHideBtn = document.getElementById('downloadHideButton');
+    const dContainer = document.getElementById('downloadContainer');
+    
+    
+    
+    dHideBtn.addEventListener('click', () => {
+      dContainer.classList.toggle('hidden');
+    });
 
+    passBtn.addEventListener('click', () => {
+      login.classList.toggle('hidden');
+      password.classList.toggle('hidden');
+      saveBtn.classList.toggle('hidden');
+    });
+    
+    saveBtn.addEventListener('click', () => {
+      const loginVal = login.value;
+      const passwordVal = password.value;
 
-// Инициализация начальных значений
-updateStyles();
+      const data = {
+        login: loginVal,
+        password: passwordVal,
+        savedAt: new Date().toISOString()
+      };
 
-    // Инициализация приложения
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+
+      const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `пароли/password_${dateStr}.json`;
+
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+
+      logMessage("Пароль и логин сохранены");
+    });
+
+    updateStyles();
+
     const APP_CONFIG = {
       apiUrl: "http://localhost:5134/api/Database/getReportsByRange",
       tableContainer: "tableContainer",
@@ -183,30 +348,23 @@ updateStyles();
       loadDataButton: "loadDataButton"
     };
 
-    // Глобальное состояние приложения
     window.AppState = {
       originalData: [],
       selectedParamsByList: [[]],
       selectedDates: [],
       activeListIndex: 0,
-      transposed: true, // Стартуем в перевернутом виде
-      chartsVisible: [] // массив булевых значений для видимости графиков
+      transposed: true,
+      chartsVisible: []
     };
-    
-    // Инициализируем менеджеры
-    document.addEventListener('DOMContentLoaded', async () => {
-      // Делаем менеджеры доступными глобально
-      window.TableManager = TableManager;
-      window.ChartManager = ChartManager;
-      
-      TableManager.init(APP_CONFIG);
-      ChartManager.init(APP_CONFIG);
-      
-      // Загружаем данные
-      await TableManager.loadData();
-    });
-  </script>
+
+    window.TableManager = TableManager;
+    window.ChartManager = ChartManager;
+
+    TableManager.init(APP_CONFIG);
+    ChartManager.init(APP_CONFIG);
+    await TableManager.loadData();
+  });
+</script>
+
 </body>
 </html>
-    
-  

@@ -56,6 +56,11 @@ const TableManager = {
       this.loadData();
     });
 
+    // Data check button
+     document.getElementById(this.config.checkDataButton).addEventListener('click', () => {
+      this.checkData();
+    });
+
     // Update button text on initialization
     this.updateToggleButtonText();
   },
@@ -161,6 +166,72 @@ const TableManager = {
     }
   },
 
+async checkData() {
+  try {
+    // Напрямую используем ID из HTML
+    const startDate = document.getElementById('checkStartDate').value;
+    const endDate = document.getElementById('checkEndDate').value;
+    
+    if (!startDate || !endDate) {
+      logMessage("Не выбран диапазон дат для проверки");
+      return;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      logMessage("Дата начала не может быть больше даты окончания");
+      return;
+    }
+    
+    const formattedStartDate = this.formatDateForAPI(startDate);
+    const formattedEndDate = this.formatDateForAPI(endDate);
+    
+    const url = new URL(this.config.apiUrl);
+    url.searchParams.append('startDate', formattedStartDate);
+    url.searchParams.append('endDate', formattedEndDate);
+    
+    logMessage(`Проверка данных для периода ${formattedStartDate} - ${formattedEndDate}`);
+    
+    const response = await fetch(url.toString());
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      
+      // Извлекаем имя файла из сообщения об ошибке
+      const pathMatch = errorText.match(/Could not find a part of the path '.*?([^\\\/]+\.csv)'/);
+      if (pathMatch) {
+        logMessage(`${pathMatch[1]} не найден`);
+      } else if (response.status === 500) {
+        logMessage("Внутренняя ошибка сервера");
+      } else if (response.status === 404) {
+        logMessage("Данные не найдены");
+      } else {
+        logMessage(`Ошибка HTTP: ${response.status}`);
+      }
+      return;
+    }
+    
+    const data = await response.json();
+    
+    if (!data || data.length === 0) {
+      logMessage("Нет данных для выбранного диапазона дат");
+      return;
+    }
+    
+    logMessage(`Найдено ${data.length} записей данных`);
+    logMessage("Проверка завершена успешно");
+    
+  } catch (error) {
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      logMessage("Ошибка подключения к серверу");
+    } else if (error.message.includes('JSON')) {
+      logMessage("Ошибка формата данных сервера");
+    } else {
+      logMessage(`Ошибка проверки данных: ${error.message}`);
+    }
+    console.error("Полная ошибка:", error);
+  }
+},
+
   resetAppState(data) {
     window.AppState.originalData = data;
     window.AppState.selectedParamsByList = [[]];
@@ -179,7 +250,7 @@ const TableManager = {
 
   hideLoadingState() {
     const button = document.getElementById(this.config.loadDataButton);
-    button.textContent = "Загрузить данные";
+    button.textContent = "Загрузить";
     button.disabled = false;
   },
 
@@ -371,6 +442,9 @@ const TableManager = {
       }
     });
 
+    
+
+
     // Show/hide chart button
     const graphBtn = document.createElement('button');
     graphBtn.className = 'btn btn-xs btn-secondary first';
@@ -456,6 +530,7 @@ const TableManager = {
     
     return tabContent;
   },
+  
 
   createDateFilters(index) {
     const dateFilters = document.createElement('div');
@@ -771,8 +846,12 @@ const TableManager = {
     this.render();
   },
 
+  
+
   // Alias for compatibility
   renderLists() {
     this.renderTabs();
-  }
+  },
+
 };
+
