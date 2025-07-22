@@ -121,18 +121,110 @@
   
   <script>
 
-
-
 let lastScrollTop = 0;
 window.addEventListener('scroll', () => {
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  if (scrollTop > 50) { // Скрываем после прокрутки на 50px
+  if (scrollTop > 1) {
     document.body.classList.add('scrolled');
   } else {
     document.body.classList.remove('scrolled');
   }
   lastScrollTop = scrollTop;
 });
+
+function setupCellSelection() {
+  document.addEventListener("click", (e) => {
+    if (e.target.tagName === 'TD') {
+      // Используем toggle для добавления/удаления класса
+      e.target.classList.toggle("selectedcell");
+    }
+  });
+}
+
+
+function setupRowSelection() {
+  document.addEventListener("click", (e) => {
+    if (e.target.tagName === 'TD') {
+      const tr = e.target.closest('tr');
+      
+      // Переключаем класс на строке
+      tr.classList.toggle("selectedcell");
+      
+      // Если строка выбрана, перемещаем ее в начало таблицы
+      if (tr.classList.contains("selectedcell")) {
+        tr.parentElement.prepend(tr);  // Перемещаем строку в начало
+      } else {
+        // Если строка не выбрана, она остаётся в обычном порядке
+        const table = tr.closest('table');
+        const rows = Array.from(table.querySelectorAll('tr.selectedcell'));
+        if (rows.length > 1) {
+          // Убираем все строки с классом 'selectedcell' из начала
+          rows.forEach(row => row.classList.remove('selectedcell'));
+          // Сортируем их по порядку, не нарушая текущий порядок остальных строк
+          table.append(...rows.reverse());
+        }
+      }
+    }
+  });
+}
+
+
+
+function logMessage(msg) {
+  const logBox = document.querySelector(".log-box");
+  const placeholder = document.querySelector(".h5");
+
+  if (placeholder) placeholder.remove();
+
+  const time = new Date().toLocaleTimeString();
+  const entry = document.createElement("p");
+  entry.textContent = `[${time}] ${msg}`;
+
+  logBox.prepend(entry);
+
+  const atBottom = logBox.scrollHeight - logBox.scrollTop === logBox.clientHeight;
+  if (atBottom) {
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+}
+
+
+function setupAuthSection() {
+  const passBtn = document.getElementById('passwordButton');
+  const login = document.getElementById('login');
+  const password = document.getElementById('password');
+  const saveBtn = document.getElementById('savepasswordButton');
+
+  passBtn.addEventListener('click', () => {
+    login.classList.toggle('hidden');
+    password.classList.toggle('hidden');
+    saveBtn.classList.toggle('hidden');
+  });
+  
+  saveBtn.addEventListener('click', () => {
+    const loginVal = login.value;
+    const passwordVal = password.value;
+
+    const data = {
+      login: loginVal,
+      password: passwordVal,
+      savedAt: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `пароли/password_${dateStr}.json`;
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    logMessage("Пароль и логин сохранены");
+  });
+}
+
 
 document.addEventListener('DOMContentLoaded', function() {
     const tabBtn = document.querySelector('.tab-btn');
@@ -151,7 +243,98 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
 });
+
+function initCurrentMonthDates() {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  
+  const startDateInput = document.getElementById('startDate');
+  const endDateInput = document.getElementById('endDate');
+  
+  startDateInput.value = startOfMonth.toISOString().split('T')[0];
+  endDateInput.value = endOfMonth.toISOString().split('T')[0];
+}
+
+function calculateEndDate(startInputId, rangeSelectId, endInputId) {
+  const startDateInput = document.getElementById(startInputId);
+  const endDateInput = document.getElementById(endInputId);
+  const rangeSelect = document.getElementById(rangeSelectId);
+  
+  const startDate = new Date(startDateInput.value);
+  const range = rangeSelect.value;
+  let endDate;
+
+  switch (range) {
+    case 'week':
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      break;
+    case 'doubleweek':
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 13);
+      break;
+    case 'month':
+      endDate = new Date(startDate);
+      endDate.setMonth(startDate.getMonth() + 1);
+      break;
+    case 'quarter':
+      endDate = new Date(startDate);
+      endDate.setMonth(startDate.getMonth() + 3);
+      break;
+    case 'year':
+      endDate = new Date(startDate);
+      endDate.setFullYear(startDate.getFullYear() + 1);
+      break;
+    default:
+      endDate = new Date(startDate);
+  }
+
+  endDateInput.value = endDate.toISOString().split('T')[0];
+}
+
+function setupDownloadSection() {
+  const dHideBtn = document.getElementById('downloadHideButton');
+  const dContainer = document.getElementById('downloadContainer');
+  const checkDataButton = document.getElementById('checkDataButton');
+
+  dHideBtn.addEventListener('click', () => {
+    dContainer.classList.toggle('hidden');
+  });
+
+  if (checkDataButton) {
+    checkDataButton.addEventListener('click', function() {
+      TableManager.checkData();
+    });
+  }
+}
+
+
+function setupDateCalculators() {
+  const startDateInput = document.getElementById('startDate');
+  const rangeSelect = document.getElementById('rangeData');
+  const checkStartDateInput = document.getElementById('checkStartDate');
+  const checkRangeSelect = document.getElementById('checkrangeData');
+
+  function safeCalculate(startId, rangeId, endId) {
+    const rangeValue = document.getElementById(rangeId).value;
+    if (rangeValue) {
+      calculateEndDate(startId, rangeId, endId);
+    }
+  }
+
+  startDateInput.addEventListener('change', () => safeCalculate('startDate', 'rangeData', 'endDate'));
+  rangeSelect.addEventListener('change', () => safeCalculate('startDate', 'rangeData', 'endDate'));
+  
+  checkStartDateInput.addEventListener('change', () => safeCalculate('checkStartDate', 'checkrangeData', 'checkEndDate'));
+  checkRangeSelect.addEventListener('change', () => safeCalculate('checkStartDate', 'checkrangeData', 'checkEndDate'));
+
+  // Не пересчитываем по умолчанию если пользователь ничего не выбрал
+  safeCalculate('startDate', 'rangeData', 'endDate');
+  safeCalculate('checkStartDate', 'checkrangeData', 'checkEndDate');
+}
 
 
 const sliderV = document.getElementById("mySliderV");
@@ -209,6 +392,144 @@ sliderV.addEventListener("input", updateStyles);
 sliderH.addEventListener("input", updateStyles);
 
 
+function setupExportButtons() {
+  const downloadCSVButton = document.getElementById("csv-Button");
+  const downloadXLSXButton = document.getElementById("xlsx-Button");
+
+  downloadCSVButton.addEventListener("click", () => {
+    try {
+      const container = document.getElementById(TableManager.config.tableContainer);
+      const table = container.querySelector("table");
+      if (!table) throw new Error("Таблица не найдена");
+
+      const isTransposed = window.AppState.transposed;
+      const rawData = TableManager.getRawData();
+      const formattedData = rawData.map(entry => ({ ...entry }));
+      const dates = formattedData.map(d => new Date(d.дата_отчета)).sort((a, b) => a - b);
+
+      const startDate = dates[0] ? new Date(dates[0]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+      const endDate = dates[dates.length - 1] ? new Date(dates[dates.length - 1]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+
+      const fields = Object.keys(formattedData[0] || {}).filter(f => f !== "id");
+
+      let csv = [];
+
+      if (!isTransposed) {
+        const header = ["Дата", ...fields.filter(f => f !== "дата_отчета")];
+        csv.push(header.join(";"));
+
+        formattedData.forEach(entry => {
+          const row = [
+            new Date(entry.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'),
+            ...header.slice(1).map(key => entry[key])
+          ];
+          csv.push(row.join(";"));
+        });
+
+      } else {
+        const header = ["Показатель", ...formattedData.map(d => new Date(d.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'))];
+        csv.push(header.join(";"));
+
+        fields.filter(f => f !== "дата_отчета").forEach(field => {
+          const row = [field, ...formattedData.map(d => d[field])];
+          csv.push(row.join(";"));
+        });
+      }
+
+      const BOM = "\uFEFF";
+      const blob = new Blob([BOM + csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
+      const filename = `${startDate}///${endDate}.csv`;
+
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+
+      logMessage("CSV успешно скачан: " + filename);
+    } catch (e) {
+      logMessage("Ошибка при скачивании CSV: " + e.message);
+    }
+  });
+
+  downloadXLSXButton.addEventListener("click", () => {
+    try {
+      const container = document.getElementById(TableManager.config.tableContainer);
+      const table = container.querySelector("table");
+      if (!table) throw new Error("Таблица не найдена");
+
+      const isTransposed = window.AppState.transposed;
+      const rawData = TableManager.getRawData();
+      const formattedData = rawData.map(entry => ({ ...entry }));
+      const dates = formattedData.map(d => new Date(d.дата_отчета)).sort((a, b) => a - b);
+
+      const startDate = dates[0] ? new Date(dates[0]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+      const endDate = dates[dates.length - 1] ? new Date(dates[dates.length - 1]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+
+      const fields = Object.keys(formattedData[0] || {}).filter(f => f !== "id");
+
+      let xlsxData = [];
+
+      if (!isTransposed) {
+        const header = ["Дата", ...fields.filter(f => f !== "дата_отчета")];
+        xlsxData.push(header);
+
+        formattedData.forEach(entry => {
+          const row = [
+            new Date(entry.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'),
+            ...header.slice(1).map(key => entry[key])
+          ];
+          xlsxData.push(row);
+        });
+
+      } else {
+        const header = ["Показатель", ...formattedData.map(d => new Date(d.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'))];
+        xlsxData.push(header);
+
+        fields.filter(f => f !== "дата_отчета").forEach(field => {
+          const row = [field, ...formattedData.map(d => d[field])];
+          xlsxData.push(row);
+        });
+      }
+
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>';
+      xml += '<ss:Workbook xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+      xml += '<ss:Worksheet ss:Name="Sheet1"><ss:Table>';
+
+      xlsxData.forEach((row, rowIndex) => {
+        xml += '<ss:Row>';
+        row.forEach(cell => {
+          xml += `<ss:Cell><ss:Data ss:Type="String">${cell}</ss:Data></ss:Cell>`;
+        });
+        xml += '</ss:Row>';
+      });
+
+      xml += '</ss:Table></ss:Worksheet>';
+      xml += '</ss:Workbook>';
+
+      const BOM = "\uFEFF";
+      const blob = new Blob([BOM + xml], { type: 'application/vnd.ms-excel' });
+      const filename = `${startDate}///${endDate}.xls`;
+
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+
+      logMessage("XLSX успешно скачан: " + filename);
+    } catch (e) {
+      logMessage("Ошибка при скачивании XLSX: " + e.message);
+    }
+  });
+
+}
+
+
 
 
 
@@ -239,15 +560,44 @@ updateStyles();
     
     // Инициализируем менеджеры
     document.addEventListener('DOMContentLoaded', async () => {
+    const tabBtn = document.querySelector('.tab-btn');
+    const tabContent = document.querySelector('.tab-content');
+    
+    if (tabBtn && tabContent) {
+        tabBtn.addEventListener('click', function() {
+            // Переключаем класс active у кнопки
+            tabBtn.classList.toggle('active');
+            
+            // Переключаем видимость контента
+            if (tabContent.style.display === 'none') {
+                tabContent.style.display = '';
+            } else {
+                tabContent.style.display = 'none';
+            }
+        });
+    }
+
+    
+
       // Делаем менеджеры доступными глобально
       window.TableManager = TableManager;
       window.ChartManager = ChartManager;
+
+
+     setupExportButtons();  
+     setupRowSelection(); 
+    initCurrentMonthDates();
+    setupDateCalculators();
+     setupCellSelection();
+     setupAuthSection();
       
       TableManager.init(APP_CONFIG);
       ChartManager.init(APP_CONFIG);
       
       // Загружаем данные
       await TableManager.loadData();
+
+      setupDownloadSection();
     });
   </script>
 </body>

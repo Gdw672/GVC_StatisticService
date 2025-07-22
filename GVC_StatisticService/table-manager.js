@@ -436,7 +436,7 @@ const TableManager = {
     startInput.type = 'date';
     startInput.id = `tab-start-${index}`;
     startInput.className = 'form-input';
-    startInput.value = dateRange.startDate || '';
+    startInput.value = dateRange.startDate || '2025-07-01';
     
     startFilterDiv.appendChild(startLabel);
     startFilterDiv.appendChild(startInput);
@@ -452,7 +452,7 @@ const TableManager = {
     endInput.type = 'date';
     endInput.id = `tab-end-${index}`;
     endInput.className = 'form-input';
-    endInput.value = dateRange.endDate || '';
+    endInput.value = dateRange.endDate || '2025-07-31';
     
     endFilterDiv.appendChild(endLabel);
     endFilterDiv.appendChild(endInput);
