@@ -11,65 +11,109 @@
     <div class="container">
       <div class="header-content">
         <h1>Отчет по данным</h1>
+        <div class="log-container">
+          <div class="log-box">
+              
+        </div>
+         </div>
+
+        <div class="authsect">
+          <input id="login" class="form-input hidden" type="text" placeholder="GVC\ФамилияИО" required>
+          <input id="password" class="form-input hidden" type="password" placeholder="Пароль" maxlength="30" minlength="14" required>
+          <button id="savepasswordButton" class="btn btn-xs btn-secondary btn-password hidden">!</button>
+          <button id="passwordButton" class="btn btn-xs btn-secondary btn-password">⛭</button>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="container">
-
     <div class="filters-section">
       <div id="dateFilters" class="date-filters">
         <div class="date-filter">
           <label for="startDate">Дата начала:</label>
-          <input type="date" id="startDate" class="form-input" value="2025-07-15">
+          <input type="date" id="startDate" class="form-input" value="2025-07-01">
         </div>
+        <select name="Диапазон" id="rangeData" class="form-input">
+  <option value="">Промежуток</option>
+  <option value="week">Неделя</option>
+  <option value="doubleweek">Две недели</option>
+  <option value="month">Месяц</option>
+  <option value="quarter">Квартал</option>
+  <option value="year">Год</option>
+</select>
         <div class="date-filter">
           <label for="endDate">Дата окончания:</label>
-          <input type="date" id="endDate" class="form-input" value="2025-07-18">
+          <input type="date" id="endDate" class="form-input" value="2025-07-31">
         </div>
-        <button id="loadDataButton" class="btn btn-primary">Загрузить данные</button>
-          <div class="date-filter-download right">
-            <button id="downloadButton" class="btn btn-xs btn-secondary">⇩</button>
-            <div class="date-filter"> 
-            <label for="downloadDate">Отчёт за три дня с:</label>
-            <input type="date" id="downloadDate" class="form-input" value="2025-07-17">
-            </div>
-          </div>
-      </div> 
+        <button id="loadDataButton" class="btn btn-primary">Нет базы данных</button>
+          <button id="downloadHideButton" class="btn btn-xs btn-secondary right">⇩</button>
+      </div>
     </div>
     
+
+      <div class="section hidden" id="downloadContainer">
+        <div class="download-section">
+          <p>Выберите диапазон дат для проверки данных:</p>
+          <div class="date-filters">
+            <div class="date-filter">
+              <label for="downloadstartDate">Дата начала:</label>
+              <input type="date" id="checkStartDate" class="form-input" value="2025-07-15">
+            </div>
+             <select name="Диапазон" id="checkrangeData" class="form-input">
+  <option value="">Промежуток</option>
+  <option value="week">Неделя</option>
+  <option value="doubleweek">Две недели</option>
+  <option value="month">Месяц</option>
+  <option value="quarter">Квартал</option>
+  <option value="year">Год</option>
+</select>
+            <div class="date-filter">
+              <label for="downloadendDate">Дата окончания:</label>
+              <input type="date" id="checkEndDate" class="form-input" value="2025-07-18">
+            </div>
+            <button id="checkDataButton" class="btn btn-primary">Проверить</button>
+          </div>
+        </div>
+    </div>
+    </div>
+    
+<div class="tablecontainer"> 
     <div class="section table-section">
       <div class="section-header">
-        <div class="section-name-header">  
-          <h2 class="section-title">Таблица </h2>
-          <button id="toggleButton" class="btn btn-secondary">Изменить вид</button>
+        <div class="section-name-header">
+          <h2 class="section-title">Таблица</h2>
+  
+          <button id="toggleButton" class="btn btn-secondary export">Изменить вид</button>
+          <button id="csv-Button" class="btn btn-secondary export">Экспортировать в csv</button>
+          <button id="xlsx-Button" class="btn btn-secondary export">Экспортировать в xlsx</button>
         </div>
 
+        <button id="resetButton" class="btn btn-secondary btn-xs right">↻</button>
         <div class="section-slider">
+          
           <div class="slider-container">
             <input type="range" min="0" max="100" value="50" class="sliderV" id="mySliderV">
           </div>
-        <div class="section-sl
           <div class="slider-container">
             <input type="range" min="0" max="100" value="50" class="sliderH" id="mySliderH">
           </div>
         </div>
       </div>
+      
 
       <div id="tableContainer" class="table-container"></div>
       <div class="resize-handle-right"></div>
-    </div>
-
-
-      <div id="listsContainer" class="section lists-container">
-         
       </div>
+ </div>
 
-
+    <div class="container">
+    <div id="listsContainer" class="section lists-container"></div>
     <div class="section">
       <div id="chartsContainer" class="charts-grid"></div>
     </div>
   </div>
+
 
   <!-- Подключаем модули -->
   <script src="table-manager.js"></script>

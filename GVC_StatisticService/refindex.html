@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Отчет по данным</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="plotly-3.0.1.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <div class="header-content">
+        <h1>Отчет по данным</h1>
+        <div class="log-container">
+          <div class="log-box">
+              
+        </div>
+         </div>
+
+        <div class="authsect">
+          <input id="login" class="form-input hidden" type="text" placeholder="GVC\ФамилияИО" required>
+          <input id="password" class="form-input hidden" type="password" placeholder="Пароль" maxlength="30" minlength="14" required>
+          <button id="savepasswordButton" class="btn btn-xs btn-secondary btn-password hidden">!</button>
+          <button id="passwordButton" class="btn btn-xs btn-secondary btn-password">⛭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="filters-section">
+      <div id="dateFilters" class="date-filters">
+        <div class="date-filter">
+          <label for="startDate">Дата начала:</label>
+          <input type="date" id="startDate" class="form-input" value="2025-07-01">
+        </div>
+        <select name="Диапазон" id="rangeData" class="form-input">
+  <option value="">Промежуток</option>
+  <option value="week">Неделя</option>
+  <option value="doubleweek">Две недели</option>
+  <option value="month">Месяц</option>
+  <option value="quarter">Квартал</option>
+  <option value="year">Год</option>
+</select>
+        <div class="date-filter">
+          <label for="endDate">Дата окончания:</label>
+          <input type="date" id="endDate" class="form-input" value="2025-07-31">
+        </div>
+        <button id="loadDataButton" class="btn btn-primary">Нет базы данных</button>
+          <button id="downloadHideButton" class="btn btn-xs btn-secondary right">⇩</button>
+      </div>
+    </div>
+    
+
+      <div class="section hidden" id="downloadContainer">
+        <div class="download-section">
+          <p>Выберите диапазон дат для проверки данных:</p>
+          <div class="date-filters">
+            <div class="date-filter">
+              <label for="downloadstartDate">Дата начала:</label>
+              <input type="date" id="checkStartDate" class="form-input" value="2025-07-15">
+            </div>
+             <select name="Диапазон" id="checkrangeData" class="form-input">
+  <option value="">Промежуток</option>
+  <option value="week">Неделя</option>
+  <option value="doubleweek">Две недели</option>
+  <option value="month">Месяц</option>
+  <option value="quarter">Квартал</option>
+  <option value="year">Год</option>
+</select>
+            <div class="date-filter">
+              <label for="downloadendDate">Дата окончания:</label>
+              <input type="date" id="checkEndDate" class="form-input" value="2025-07-18">
+            </div>
+            <button id="checkDataButton" class="btn btn-primary">Проверить</button>
+          </div>
+        </div>
+    </div>
+    </div>
+    
+<div class="tablecontainer"> 
+    <div class="section table-section">
+      <div class="section-header">
+        <div class="section-name-header">
+          <h2 class="section-title">Таблица</h2>
+  
+          <button id="toggleButton" class="btn btn-secondary export">Изменить вид</button>
+          <button id="csv-Button" class="btn btn-secondary export">Экспортировать в csv</button>
+          <button id="xlsx-Button" class="btn btn-secondary export">Экспортировать в xlsx</button>
+        </div>
+
+        <button id="resetButton" class="btn btn-secondary btn-xs right">↻</button>
+        <div class="section-slider">
+          
+          <div class="slider-container">
+            <input type="range" min="0" max="100" value="50" class="sliderV" id="mySliderV">
+          </div>
+          <div class="slider-container">
+            <input type="range" min="0" max="100" value="50" class="sliderH" id="mySliderH">
+          </div>
+        </div>
+      </div>
+      
+
+      <div id="tableContainer" class="table-container"></div>
+      <div class="resize-handle-right"></div>
+      </div>
+ </div>
+
+    <div class="container">
+    <div id="listsContainer" class="section lists-container"></div>
+    <div class="section">
+      <div id="chartsContainer" class="charts-grid"></div>
+    </div>
+  </div>
+
+  
+
+  <script src="table-manager.js"></script>
+  <script src="chart-manager.js"></script>
+  <script>
+const APP_CONFIG = {
+  apiUrl: "http://localhost:5134/api/Database/getReportsByRange",
+  tableContainer: "tableContainer",
+  listsContainer: "listsContainer",
+  chartsContainer: "chartsContainer",
+  toggleButton: "toggleButton",
+  startDateInput: "startDate",
+  endDateInput: "endDate",
+  loadDataButton: "loadDataButton",
+  checkApiUrl: '/api/Database/redownloadReportsByDate',
+  checkStartDateInput: 'checkStartDate',
+  checkEndDateInput: 'checkEndDate',
+  
+};
+
+window.AppState = {
+  originalData: [],
+  selectedParamsByList: [[]],
+  selectedDates: [],
+  activeListIndex: 0,
+  transposed: true,
+  chartsVisible: [],
+  selectedCells: new Set(),
+  styleState: { sliderV: 50, sliderH: 50 }
+};
+
+function initCurrentMonthDates() {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  
+  const startDateInput = document.getElementById('startDate');
+  const endDateInput = document.getElementById('endDate');
+  
+  startDateInput.value = startOfMonth.toISOString().split('T')[0];
+  endDateInput.value = endOfMonth.toISOString().split('T')[0];
+}
+
+function calculateEndDate(startInputId, rangeSelectId, endInputId) {
+  const startDateInput = document.getElementById(startInputId);
+  const endDateInput = document.getElementById(endInputId);
+  const rangeSelect = document.getElementById(rangeSelectId);
+  
+  const startDate = new Date(startDateInput.value);
+  const range = rangeSelect.value;
+  let endDate;
+
+  switch (range) {
+    case 'week':
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      break;
+    case 'doubleweek':
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 13);
+      break;
+    case 'month':
+      endDate = new Date(startDate);
+      endDate.setMonth(startDate.getMonth() + 1);
+      break;
+    case 'quarter':
+      endDate = new Date(startDate);
+      endDate.setMonth(startDate.getMonth() + 3);
+      break;
+    case 'year':
+      endDate = new Date(startDate);
+      endDate.setFullYear(startDate.getFullYear() + 1);
+      break;
+    default:
+      endDate = new Date(startDate);
+  }
+
+  endDateInput.value = endDate.toISOString().split('T')[0];
+}
+
+function setupDateCalculators() {
+  const startDateInput = document.getElementById('startDate');
+  const rangeSelect = document.getElementById('rangeData');
+  const checkStartDateInput = document.getElementById('checkStartDate');
+  const checkRangeSelect = document.getElementById('checkrangeData');
+
+  startDateInput.addEventListener('change', () => calculateEndDate('startDate', 'rangeData', 'endDate'));
+  rangeSelect.addEventListener('change', () => calculateEndDate('startDate', 'rangeData', 'endDate'));
+  
+  checkStartDateInput.addEventListener('change', () => calculateEndDate('checkStartDate', 'checkrangeData', 'checkEndDate'));
+  checkRangeSelect.addEventListener('change', () => calculateEndDate('checkStartDate', 'checkrangeData', 'checkEndDate'));
+
+  calculateEndDate('startDate', 'rangeData', 'endDate');
+  calculateEndDate('checkStartDate', 'checkrangeData', 'checkEndDate');
+}
+
+function persistStyleState() {
+  const sliderV = document.getElementById("mySliderV");
+  const sliderH = document.getElementById("mySliderH");
+  
+  window.AppState.styleState = {
+    sliderV: sliderV.value,
+    sliderH: sliderH.value
+  };
+  
+  function persistStyleState() {
+  try {
+    const sliderV = document.getElementById("mySliderV");
+    const sliderH = document.getElementById("mySliderH");
+    
+    window.AppState.styleState = {
+      sliderV: sliderV.value,
+      sliderH: sliderH.value
+    };
+    
+    localStorage.setItem("styleState", JSON.stringify(window.AppState.styleState));
+  } catch (e) {
+    console.warn('Не удалось сохранить состояние в localStorage:', e);
+  }
+}
+}
+
+function restoreStyleState() {
+  const saved = localStorage.getItem("styleState");
+  if (saved) {
+    window.AppState.styleState = JSON.parse(saved);
+  }
+  
+  const sliderV = document.getElementById("mySliderV");
+  const sliderH = document.getElementById("mySliderH");
+  
+  sliderV.value = window.AppState.styleState.sliderV;
+  sliderH.value = window.AppState.styleState.sliderH;
+}
+
+function updateStyles() {
+  const sliderV = document.getElementById("mySliderV");
+  const sliderH = document.getElementById("mySliderH");
+  const table = document.querySelector(".table-container table");
+  
+  if (!table) return;
+
+  const ths = table.querySelectorAll("th");
+  const tds = table.querySelectorAll("td");
+
+  const fontSize = 10 + (sliderV.value * 0.2);
+  const padding = 2 + (sliderV.value * 0.1);
+  const lineHeight = 1 + sliderH.value / 100;
+
+  table.style.lineHeight = lineHeight;
+
+  [...ths, ...tds].forEach(cell => {
+    cell.style.fontSize = fontSize + "px";
+    cell.style.padding = padding + "px";
+  });
+}
+
+function saveSelectedCells() {
+  const selectedCells = document.querySelectorAll('.selectedcell');
+  window.AppState.selectedCells = new Set();
+  
+  selectedCells.forEach(cell => {
+    const rowIndex = cell.parentNode.rowIndex;
+    const cellIndex = cell.cellIndex;
+    window.AppState.selectedCells.add(`${rowIndex}-${cellIndex}`);
+  });
+}
+
+function restoreSelectedCells() {
+  const table = document.querySelector(".table-container table");
+  if (!table) return;
+  
+  window.AppState.selectedCells.forEach(cellId => {
+    const [rowIndex, cellIndex] = cellId.split('-').map(Number);
+    const row = table.rows[rowIndex];
+    if (row && row.cells[cellIndex]) {
+      row.cells[cellIndex].classList.add('selectedcell');
+    }
+  });
+}
+
+function setupSliders() {
+  const sliderV = document.getElementById("mySliderV");
+  const sliderH = document.getElementById("mySliderH");
+  const resetButton = document.getElementById("resetButton");
+
+  sliderV.addEventListener("input", () => {
+    updateStyles();
+    persistStyleState();
+  });
+
+  sliderH.addEventListener("input", () => {
+    updateStyles();
+    persistStyleState();
+  });
+
+  resetButton.addEventListener("click", () => {
+    sliderV.value = 50;
+    sliderH.value = 50;
+    updateStyles();
+    persistStyleState();
+  });
+}
+
+function setupExportButtons() {
+  const downloadCSVButton = document.getElementById("csv-Button");
+  const downloadXLSXButton = document.getElementById("xlsx-Button");
+
+  downloadCSVButton.addEventListener("click", () => {
+    try {
+      const container = document.getElementById(TableManager.config.tableContainer);
+      const table = container.querySelector("table");
+      if (!table) throw new Error("Таблица не найдена");
+
+      const isTransposed = window.AppState.transposed;
+      const rawData = TableManager.getRawData();
+      const formattedData = rawData.map(entry => ({ ...entry }));
+      const dates = formattedData.map(d => new Date(d.дата_отчета)).sort((a, b) => a - b);
+
+      const startDate = dates[0] ? new Date(dates[0]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+      const endDate = dates[dates.length - 1] ? new Date(dates[dates.length - 1]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+
+      const fields = Object.keys(formattedData[0] || {}).filter(f => f !== "id");
+
+      let csv = [];
+
+      if (!isTransposed) {
+        const header = ["Дата", ...fields.filter(f => f !== "дата_отчета")];
+        csv.push(header.join(";"));
+
+        formattedData.forEach(entry => {
+          const row = [
+            new Date(entry.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'),
+            ...header.slice(1).map(key => entry[key])
+          ];
+          csv.push(row.join(";"));
+        });
+
+      } else {
+        const header = ["Показатель", ...formattedData.map(d => new Date(d.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'))];
+        csv.push(header.join(";"));
+
+        fields.filter(f => f !== "дата_отчета").forEach(field => {
+          const row = [field, ...formattedData.map(d => d[field])];
+          csv.push(row.join(";"));
+        });
+      }
+
+      const BOM = "\uFEFF";
+      const blob = new Blob([BOM + csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
+      const filename = `${startDate}///${endDate}.csv`;
+
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+
+      logMessage("CSV успешно скачан: " + filename);
+    } catch (e) {
+      logMessage("Ошибка при скачивании CSV: " + e.message);
+    }
+  });
+
+  downloadXLSXButton.addEventListener("click", () => {
+    try {
+      const container = document.getElementById(TableManager.config.tableContainer);
+      const table = container.querySelector("table");
+      if (!table) throw new Error("Таблица не найдена");
+
+      const isTransposed = window.AppState.transposed;
+      const rawData = TableManager.getRawData();
+      const formattedData = rawData.map(entry => ({ ...entry }));
+      const dates = formattedData.map(d => new Date(d.дата_отчета)).sort((a, b) => a - b);
+
+      const startDate = dates[0] ? new Date(dates[0]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+      const endDate = dates[dates.length - 1] ? new Date(dates[dates.length - 1]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+
+      const fields = Object.keys(formattedData[0] || {}).filter(f => f !== "id");
+
+      let xlsxData = [];
+
+      if (!isTransposed) {
+        const header = ["Дата", ...fields.filter(f => f !== "дата_отчета")];
+        xlsxData.push(header);
+
+        formattedData.forEach(entry => {
+          const row = [
+            new Date(entry.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'),
+            ...header.slice(1).map(key => entry[key])
+          ];
+          xlsxData.push(row);
+        });
+
+      } else {
+        const header = ["Показатель", ...formattedData.map(d => new Date(d.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'))];
+        xlsxData.push(header);
+
+        fields.filter(f => f !== "дата_отчета").forEach(field => {
+          const row = [field, ...formattedData.map(d => d[field])];
+          xlsxData.push(row);
+        });
+      }
+
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>';
+      xml += '<ss:Workbook xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+      xml += '<ss:Worksheet ss:Name="Sheet1"><ss:Table>';
+
+      xlsxData.forEach((row, rowIndex) => {
+        xml += '<ss:Row>';
+        row.forEach(cell => {
+          xml += `<ss:Cell><ss:Data ss:Type="String">${cell}</ss:Data></ss:Cell>`;
+        });
+        xml += '</ss:Row>';
+      });
+
+      xml += '</ss:Table></ss:Worksheet>';
+      xml += '</ss:Workbook>';
+
+      const BOM = "\uFEFF";
+      const blob = new Blob([BOM + xml], { type: 'application/vnd.ms-excel' });
+      const filename = `${startDate}///${endDate}.xls`;
+
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+
+      logMessage("XLSX успешно скачан: " + filename);
+    } catch (e) {
+      logMessage("Ошибка при скачивании XLSX: " + e.message);
+    }
+  });
+}
+
+function setupAuthSection() {
+  const passBtn = document.getElementById('passwordButton');
+  const login = document.getElementById('login');
+  const password = document.getElementById('password');
+  const saveBtn = document.getElementById('savepasswordButton');
+
+  passBtn.addEventListener('click', () => {
+    login.classList.toggle('hidden');
+    password.classList.toggle('hidden');
+    saveBtn.classList.toggle('hidden');
+  });
+  
+  saveBtn.addEventListener('click', () => {
+    const loginVal = login.value;
+    const passwordVal = password.value;
+
+    const data = {
+      login: loginVal,
+      password: passwordVal,
+      savedAt: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `пароли/password_${dateStr}.json`;
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    logMessage("Пароль и логин сохранены");
+  });
+}
+
+function setupDownloadSection() {
+  const dHideBtn = document.getElementById('downloadHideButton');
+  const dContainer = document.getElementById('downloadContainer');
+  const checkDataButton = document.getElementById('checkDataButton');
+
+  dHideBtn.addEventListener('click', () => {
+    dContainer.classList.toggle('hidden');
+  });
+
+  if (checkDataButton) {
+    checkDataButton.addEventListener('click', function() {
+      TableManager.checkData();
+    });
+  }
+}
+
+function setupCellSelection() {
+  document.addEventListener("click", (e) => {
+    if (e.target.tagName === 'TD') {
+      e.target.classList.add("selectedcell");
+    }
+  });
+}
+
+function setupScrollEffects() {
+  let lastScrollTop = 0;
+  window.addEventListener('scroll', () => {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    document.body.classList.toggle('scrolled', scrollTop > 1);
+    lastScrollTop = scrollTop;
+  });
+}
+
+function logMessage(msg) {
+  const logBox = document.querySelector(".log-box");
+  const placeholder = document.querySelector(".h5");
+
+  if (placeholder) placeholder.remove();
+
+  const time = new Date().toLocaleTimeString();
+  const entry = document.createElement("p");
+  entry.textContent = `[${time}] ${msg}`;
+
+  logBox.prepend(entry);
+
+  const atBottom = logBox.scrollHeight - logBox.scrollTop === logBox.clientHeight;
+  if (atBottom) {
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+}
+
+function setupTableManagerOverrides() {
+  const originalRenderTable = TableManager.renderTable;
+  TableManager.renderTable = function (...args) {
+    saveSelectedCells();
+    originalRenderTable.apply(this, args);
+    updateStyles();
+    restoreSelectedCells();
+  };
+}
+
+function waitForPlotly() {
+  return new Promise((resolve, reject) => {
+    if (typeof Plotly !== 'undefined') {
+      resolve();
+      return;
+    }
+    
+    let attempts = 0;
+    const maxAttempts = 50; // 5 секунд максимум
+    
+    const checkPlotly = () => {
+      attempts++;
+      if (typeof Plotly !== 'undefined') {
+        resolve();
+      } else if (attempts >= maxAttempts) {
+        reject(new Error('Plotly не загрузился'));
+      } else {
+        setTimeout(checkPlotly, 100);
+      }
+    };
+    
+    checkPlotly();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await waitForPlotly();
+  const requiredElements = ['tableContainer', 'chartsContainer', 'listsContainer'];
+  const missingElements = requiredElements.filter(id => !document.getElementById(id));
+  
+  if (missingElements.length > 0) {
+    console.error('Отсутствуют элементы:', missingElements);
+    return;
+  }
+  
+  window.TableManager = TableManager;
+  window.ChartManager = ChartManager;
+  
+  initCurrentMonthDates();
+  setupDateCalculators();
+  setupSliders();
+  setupExportButtons();
+  setupAuthSection();
+  setupDownloadSection();
+  setupCellSelection();
+  setupScrollEffects();
+  
+  restoreStyleState();
+  
+  TableManager.init(APP_CONFIG);
+  ChartManager.init(APP_CONFIG);
+  
+  setupTableManagerOverrides();
+  
+  await TableManager.loadData();
+});
+</script>
+
+</html>
