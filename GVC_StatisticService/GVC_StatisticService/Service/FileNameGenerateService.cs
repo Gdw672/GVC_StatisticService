@@ -6,7 +6,7 @@ namespace GVC_StatisticService.Service
 {
     public class FileNameGenerateService : IFileNameGenerateService
     {
-        private readonly string filePathCsv = @"C:\StatisticCsv";
+        private readonly string filePathCsv = "/csv";
 
         public List<string> CheckFailedFiles(DateTime startDate, DateTime endDate)
         {

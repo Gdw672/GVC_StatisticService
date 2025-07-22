@@ -26,7 +26,7 @@ namespace GVC_StatisticService.Controllers
         [Route("tryReadCsv")]
         public IActionResult tryReadCsvBYDate(DateTime dateTime)
         {
-           return Ok(readCsvService.ReadCsvByName(dateTime));
+           return Ok(readCsvService.ReadCsvByName(dateTime).First());
         }
     }
 }

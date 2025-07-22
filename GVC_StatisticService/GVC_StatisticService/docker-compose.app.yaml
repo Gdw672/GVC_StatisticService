@@ -1,0 +1,19 @@
+﻿version: '3.8'
+
+services:
+  gvc_statistic_service:
+    image: gvc_statistic_service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5134:8080"
+    networks:
+      - mynetwork
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+    restart: always
+
+networks:
+  mynetwork:
+    external: true
