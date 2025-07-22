@@ -128,8 +128,12 @@ const TableManager = {
       
       const formattedStartDate = this.formatDateForAPI(startDate);
       const formattedEndDate = this.formatDateForAPI(endDate);
-      
+
+
       const url = new URL(this.config.apiUrl);
+
+
+      
       url.searchParams.append('startDate', formattedStartDate);
       url.searchParams.append('endDate', formattedEndDate);
       
@@ -185,7 +189,7 @@ async checkData() {
     const formattedStartDate = this.formatDateForAPI(startDate);
     const formattedEndDate = this.formatDateForAPI(endDate);
     
-    const url = new URL(this.config.apiUrl);
+    const url = new URL(this.config.checkApiUrl);
     url.searchParams.append('startDate', formattedStartDate);
     url.searchParams.append('endDate', formattedEndDate);
     
