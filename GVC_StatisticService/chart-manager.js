@@ -202,7 +202,6 @@ const ChartManager = {
   let colorIndex = 0;
   const traces = [];
   
-  
   percentageData.forEach(item => {
     traces.push(this.createTrace(item, colors[colorIndex++ % colors.length], 'y', theme));
   });

@@ -25,6 +25,7 @@ const TableManager = {
 
   init(config) {
     this.config = config;
+    
     this.setupEventListeners();
     
     // Initialize chart settings
@@ -171,7 +172,7 @@ const TableManager = {
   },
 
 async checkData() {
-  
+
   try {
     const startDate = document.getElementById('checkStartDate').value;
     const endDate = document.getElementById('checkEndDate').value;
@@ -452,8 +453,10 @@ async checkData() {
     // Show/hide chart button
     const graphBtn = document.createElement('button');
     graphBtn.className = 'btn btn-xs btn-secondary first';
+    graphBtn.id = 'graph-button'; 
     graphBtn.textContent = window.AppState.chartsVisible[window.AppState.activeListIndex] ? '👁' : '👁';
     graphBtn.addEventListener('click', () => {
+      logMessage("Нажалось!");
       const isChartVisible = window.AppState.chartsVisible[window.AppState.activeListIndex];
       if (isChartVisible) {
         window.ChartManager.closeChart(window.AppState.activeListIndex);
