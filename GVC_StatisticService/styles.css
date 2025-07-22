@@ -908,8 +908,9 @@ div.tab-buttons > button.btn.btn-danger {
     margin-left: 5px;
 }
 
-#downloadCSV-Button {
+.export {
     margin-left: var(--space-sm);
+    margin-right: var(--space-sm);
 }
 
 #password {
@@ -918,6 +919,10 @@ div.tab-buttons > button.btn.btn-danger {
 
 #login {
     width: 150px;
+}
+
+#rangeData{
+    width:15%;
 }
 
 .log-container {
@@ -949,4 +954,6 @@ div.tab-buttons > button.btn.btn-danger {
   color: var(--primary-dark);
   margin-top: 10px;
 }
+
+
 
