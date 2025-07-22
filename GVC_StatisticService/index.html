@@ -218,7 +218,21 @@ function persistStyleState() {
     sliderH: sliderH.value
   };
   
-  localStorage.setItem("styleState", JSON.stringify(window.AppState.styleState));
+  function persistStyleState() {
+  try {
+    const sliderV = document.getElementById("mySliderV");
+    const sliderH = document.getElementById("mySliderH");
+    
+    window.AppState.styleState = {
+      sliderV: sliderV.value,
+      sliderH: sliderH.value
+    };
+    
+    localStorage.setItem("styleState", JSON.stringify(window.AppState.styleState));
+  } catch (e) {
+    console.warn('Не удалось сохранить состояние в localStorage:', e);
+  }
+}
 }
 
 function restoreStyleState() {
@@ -537,15 +551,21 @@ function setupTableManagerOverrides() {
 }
 
 function waitForPlotly() {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     if (typeof Plotly !== 'undefined') {
       resolve();
       return;
     }
     
+    let attempts = 0;
+    const maxAttempts = 50; // 5 секунд максимум
+    
     const checkPlotly = () => {
+      attempts++;
       if (typeof Plotly !== 'undefined') {
         resolve();
+      } else if (attempts >= maxAttempts) {
+        reject(new Error('Plotly не загрузился'));
       } else {
         setTimeout(checkPlotly, 100);
       }
@@ -557,6 +577,13 @@ function waitForPlotly() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   await waitForPlotly();
+  const requiredElements = ['tableContainer', 'chartsContainer', 'listsContainer'];
+  const missingElements = requiredElements.filter(id => !document.getElementById(id));
+  
+  if (missingElements.length > 0) {
+    console.error('Отсутствуют элементы:', missingElements);
+    return;
+  }
   
   window.TableManager = TableManager;
   window.ChartManager = ChartManager;
@@ -581,5 +608,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'963247ba89207dfc',t:'MTc1MzE4MDQxMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
