@@ -144,7 +144,7 @@ function setupCellSelection() {
 
 function setupRowSelection() {
   document.addEventListener("click", (e) => {
-    if (e.target.tagName === 'TD') {
+    if (e.target.tagName === 'T') {
       const tr = e.target.closest('tr');
       
       // Переключаем класс на строке
@@ -168,7 +168,53 @@ function setupRowSelection() {
   });
 }
 
+function btncheck() {
+  const checkDataButton = document.getElementById("checkDataButton");
 
+  checkDataButton.addEventListener("click", () => {
+    checkData();
+  })}
+
+
+async function checkData() {
+  const startDate = document.getElementById('checkStartDate').value;
+  const endDate = document.getElementById('checkEndDate').value;
+  const checkApiUrl = "http://localhost:5134/api/Database/redownloadReportsByDate";
+
+
+  if (!startDate || !endDate) {
+    logMessage("Выберите диапазон дат");
+    return;
+  }
+
+  // Формируем URL с параметрами
+  const url = new URL(checkApiUrl);
+  url.searchParams.append('startDate', startDate);
+  url.searchParams.append('endDate', endDate);
+
+  logMessage(`Проверка данных для периода ${startDate} - ${endDate}`);
+
+  try {
+    const response = await fetch(url.toString());
+    
+    if (!response.ok) {
+      logMessage(`Ошибка HTTP: ${response.status}`);
+      return;
+    }
+
+    const data = await response.json();
+
+    if (!data || data.length === 0) {
+      logMessage("Нет данных для выбранного диапазона дат");
+      return;
+    }
+
+    logMessage(`Найдено ${data.length} записей данных`);
+    logMessage("Проверка завершена успешно");
+  } catch (error) {
+    logMessage(`Ошибка проверки данных: ${error.message}`);
+  }
+}
 
 function logMessage(msg) {
   const logBox = document.querySelector(".log-box");
@@ -298,18 +344,12 @@ function calculateEndDate(startInputId, rangeSelectId, endInputId) {
 function setupDownloadSection() {
   const dHideBtn = document.getElementById('downloadHideButton');
   const dContainer = document.getElementById('downloadContainer');
-  const checkDataButton = document.getElementById('checkDataButton');
 
   dHideBtn.addEventListener('click', () => {
     dContainer.classList.toggle('hidden');
   });
-
-  if (checkDataButton) {
-    checkDataButton.addEventListener('click', function() {
-      TableManager.checkData();
-    });
-  }
 }
+
 
 
 function setupDateCalculators() {
@@ -545,7 +585,9 @@ updateStyles();
       toggleButton: "toggleButton",
       startDateInput: "startDate",
       endDateInput: "endDate",
-      loadDataButton: "loadDataButton"
+      loadDataButton: "loadDataButton",
+      checkApiUrl: "http://localhost:5134/api/Database/redownloadReportsByDate",
+      checkDataButton: "checkDataButton",
     };
 
     // Глобальное состояние приложения
@@ -598,6 +640,7 @@ updateStyles();
       await TableManager.loadData();
 
       setupDownloadSection();
+      btncheck();
     });
   </script>
 </body>
