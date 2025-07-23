@@ -3,17 +3,21 @@ using GVC_StatisticService.Context.Interface;
 using GVC_StatisticService.Service;
 using GVC_StatisticService.Service.Interface;
 using Microsoft.EntityFrameworkCore;
+using Hangfire;
+using Hangfire.PostgreSql;
+using Hangfire.Dashboard;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 
 builder.Services.AddControllers();
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<IPythonRunnerService, PythonRunnerService>();
 
 builder.Services.AddDbContext<StatisticDbContext>(options =>
-    options.UseNpgsql("Host=localhost;Port=5433;Username=postgres;Password=example;Database=statistic"));
+    options.UseNpgsql("Host=db;Port=5432;Username=postgres;Password=example;Database=statistic"));
 
 builder.Services.AddScoped<IStatisticDbContext>(provider =>
     provider.GetRequiredService<StatisticDbContext>());
@@ -22,6 +26,10 @@ builder.Services.AddScoped<IReadCsvService, ReadCsvService>();
 builder.Services.AddScoped<IReportDbService, ReportDbService>();
 builder.Services.AddScoped<ICountReportService, CountReportService>();
 builder.Services.AddScoped<ITxtReadService, TxtReadService>();
+builder.Services.AddScoped<IFileNameGenerateService, FileNameGenerateService>();
+builder.Services.AddScoped<IDeleteCsvService, DeleteCsvService>();
+builder.Services.AddScoped<IRedownloadFileService, RedownloadFileService>();
+
 
 
 builder.Services.AddCors(options =>
@@ -34,20 +42,52 @@ builder.Services.AddCors(options =>
     });
 });
 
+
+builder.Services.AddHangfire(config =>
+    config.UsePostgreSqlStorage(builder.Configuration.GetConnectionString("HangfireConnection")));
+
+builder.Services.AddHangfireServer();
+
 var app = builder.Build();
 
-app.UseCors();
-
-if (app.Environment.IsDevelopment())
-{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
+app.UseStaticFiles();
+app.UseCors();
+
+
+// Hangfire Dashboard
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    DashboardTitle = "Background Jobs",
+    Authorization = [new DashboardNoAuthorizationFilter()]
+});
+
+// Регистрация периодической задачи
+var cronSchedule = builder.Configuration["Python:ExecutionCron"];
+RecurringJob.AddOrUpdate<IPythonRunnerService>(
+    "python-script-job",
+    service => service.RunDailyDownloadReport(),
+    cronSchedule,
+    new RecurringJobOptions
+    {
+        MisfireHandling = MisfireHandlingMode.Ignorable
+    });
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<StatisticDbContext>();
+    dbContext.Database.Migrate();
+}
 
 app.Run();
+
+// Фильтр авторизации
+public class DashboardNoAuthorizationFilter : IDashboardAuthorizationFilter
+{
+    public bool Authorize(DashboardContext context) => true;
+}

@@ -9,16 +9,24 @@ namespace GVC_StatisticService.Controllers
     public class TestController : ControllerBase
     {
         private readonly IReportDbService reportDbService;
-        public TestController(IReportDbService reportDbService) {
+        private readonly IReadCsvService readCsvService;
+        public TestController(IReportDbService reportDbService, IReadCsvService readCsvService) {
         
            this.reportDbService = reportDbService;
-
+            this.readCsvService = readCsvService;
         } 
         [HttpGet]
         [Route("writeAndCountReportByLastDate")]
         public async Task<IActionResult> GetDate()
         {
-            return Ok( await reportDbService.WriteAndCountReportByDate());
+            return Ok( await reportDbService.WriteAndCountReportByYesterday());
+        }
+
+        [HttpGet]
+        [Route("tryReadCsv")]
+        public IActionResult tryReadCsvBYDate(DateTime dateTime)
+        {
+           return Ok(readCsvService.ReadCsvByName(dateTime).First());
         }
     }
 }
