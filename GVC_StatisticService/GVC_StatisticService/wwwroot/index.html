@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Отчет по данным</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="plotly-3.0.1.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <div class="header-content">
+        <h1>Отчет по данным</h1>
+        <div class="log-container">
+          <div class="log-box">
+              
+        </div>
+         </div>
+
+        <div class="authsect">
+          <input id="login" class="form-input hidden" type="text" placeholder="GVC\ФамилияИО" required>
+          <input id="password" class="form-input hidden" type="password" placeholder="Пароль" maxlength="30" minlength="14" required>
+          <button id="savepasswordButton" class="btn btn-xs btn-secondary btn-password hidden">!</button>
+          <button id="passwordButton" class="btn btn-xs btn-secondary btn-password">⛭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="filters-section">
+      <div id="dateFilters" class="date-filters">
+        <div class="date-filter">
+          <label for="startDate">Дата начала:</label>
+          <input type="date" id="startDate" class="form-input" value="2025-07-01">
+        </div>
+        <select name="Диапазон" id="rangeData" class="form-input">
+  <option value="">Промежуток</option>
+  <option value="week">Неделя</option>
+  <option value="doubleweek">Две недели</option>
+  <option value="month">Месяц</option>
+  <option value="quarter">Квартал</option>
+  <option value="year">Год</option>
+</select>
+        <div class="date-filter">
+          <label for="endDate">Дата окончания:</label>
+          <input type="date" id="endDate" class="form-input" value="2025-07-31">
+        </div>
+        <button id="loadDataButton" class="btn btn-primary">Нет базы данных</button>
+          <button id="downloadHideButton" class="btn btn-xs btn-secondary right">⇩</button>
+      </div>
+    </div>
+    
+
+      <div class="section hidden" id="downloadContainer">
+        <div class="download-section">
+          <p>Выберите диапазон дат для проверки данных:</p>
+          <div class="date-filters">
+            <div class="date-filter">
+              <label for="downloadstartDate">Дата начала:</label>
+              <input type="date" id="checkStartDate" class="form-input" value="2025-07-15">
+            </div>
+            <div class="date-filter">
+              <label for="downloadendDate">Дата окончания:</label>
+              <input type="date" id="checkEndDate" class="form-input" value="2025-07-18">
+            </div>
+            <button id="checkDataButton" class="btn btn-primary">Проверить</button>
+          </div>
+        </div>
+    </div>
+    </div>
+    
+<div class="tablecontainer"> 
+    <div class="section table-section">
+      <div class="section-header">
+        <div class="section-name-header">
+          <h2 class="section-title">Таблица</h2>
+  
+          <button id="toggleButton" class="btn btn-secondary export">Изменить вид</button>
+          <button id="csv-Button" class="btn btn-secondary export">Экспортировать в csv</button>
+          <button id="xlsx-Button" class="btn btn-secondary export">Экспортировать в xlsx</button>
+        </div>
+
+        <button id="resetButton" class="btn btn-secondary btn-xs right">↻</button>
+        <div class="section-slider">
+          
+          <div class="slider-container">
+            <input type="range" min="0" max="100" value="50" class="sliderV" id="mySliderV">
+          </div>
+          <div class="slider-container">
+            <input type="range" min="0" max="100" value="50" class="sliderH" id="mySliderH">
+          </div>
+        </div>
+      </div>
+      
+
+      <div id="tableContainer" class="table-container"></div>
+      <div class="resize-handle-right"></div>
+      </div>
+ </div>
+
+    <div class="container">
+    <div id="listsContainer" class="section lists-container"></div>
+    <div class="section">
+      <div id="chartsContainer" class="charts-grid"></div>
+    </div>
+  </div>
+
+  
+
+  <script src="table-manager.js"></script>
+  <script src="chart-manager.js"></script>
+  <script>
+
+  let lastScrollTop = 0;
+  window.addEventListener('scroll', () => {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    document.body.classList.toggle('scrolled', scrollTop > 1);
+    lastScrollTop = scrollTop;
+  });
+
+  
+// Обновленный скрипт управления таблицей и интерфейсом
+
+const sliderV = document.getElementById("mySliderV");
+const sliderH = document.getElementById("mySliderH");
+const resetButton = document.getElementById("resetButton");
+const downloadCSVButton = document.getElementById("csv-Button");
+const downloadXLSXButton = document.getElementById("xlsx-Button");
+
+// --- Упрощенная функция применения стилей от ползунков ---
+function updateStyles() {
+  const valueV = sliderV.value;
+  const valueH = sliderH.value;
+
+  const table = document.querySelector(".table-container table");
+  if (!table) return;
+
+  const ths = table.querySelectorAll("th");
+  const tds = table.querySelectorAll("td");
+
+  const fontSize = 10 + (valueV * 0.2); // от 10px до 30px
+  const padding = 2 + (valueV * 0.1);   // от 2px до 12px
+  const lineHeight = 1 + valueH / 100; // от 1 до 2
+
+  table.style.lineHeight = lineHeight;
+
+  [...ths, ...tds].forEach(cell => {
+    cell.style.fontSize = fontSize + "px";
+    cell.style.padding = padding + "px";
+  });
+}
+
+sliderV.addEventListener("input", () => {
+  updateStyles();
+  persistStyleState();
+});
+
+sliderH.addEventListener("input", () => {
+  updateStyles();
+  persistStyleState();
+});
+
+// --- Сброс значений ползунков ---
+resetButton.addEventListener("click", () => {
+  sliderV.value = 50;
+  sliderH.value = 50;
+  updateStyles();
+  persistStyleState();
+});
+
+downloadXLSXButton.addEventListener("click", () => {
+  try {
+    const container = document.getElementById(TableManager.config.tableContainer);
+    const table = container.querySelector("table");
+    if (!table) throw new Error("Таблица не найдена");
+
+    const isTransposed = window.AppState.transposed;
+    const rawData = TableManager.getRawData(); // исходные значения из БД
+    const formattedData = rawData.map(entry => ({ ...entry }));
+    const dates = formattedData.map(d => new Date(d.дата_отчета)).sort((a, b) => a - b);
+
+    // Форматирование дат
+    const startDate = dates[0] ? new Date(dates[0]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+    const endDate = dates[dates.length - 1] ? new Date(dates[dates.length - 1]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+
+    const fields = Object.keys(formattedData[0] || {}).filter(f => f !== "id");
+
+    let xlsxData = [];
+
+    if (!isTransposed) {
+      // Горизонтальная таблица
+      const header = ["Дата", ...fields.filter(f => f !== "дата_отчета")];
+      xlsxData.push(header);
+
+      formattedData.forEach(entry => {
+        const row = [
+          new Date(entry.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'), // Форматируем дату
+          ...header.slice(1).map(key => entry[key])
+        ];
+        xlsxData.push(row);
+      });
+
+    } else {
+      // Транспонированная таблица
+      const header = ["Показатель", ...formattedData.map(d => new Date(d.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'))]; // Форматируем все даты
+      xlsxData.push(header);
+
+      fields.filter(f => f !== "дата_отчета").forEach(field => {
+        const row = [field, ...formattedData.map(d => d[field])];
+        xlsxData.push(row);
+      });
+    }
+
+    // Преобразование данных в формат XML для Excel
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>';
+    xml += '<ss:Workbook xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+    xml += '<ss:Worksheet ss:Name="Sheet1"><ss:Table>';
+
+    xlsxData.forEach((row, rowIndex) => {
+      xml += '<ss:Row>';
+      row.forEach(cell => {
+        xml += `<ss:Cell><ss:Data ss:Type="String">${cell}</ss:Data></ss:Cell>`;
+      });
+      xml += '</ss:Row>';
+    });
+
+    xml += '</ss:Table></ss:Worksheet>';
+    xml += '</ss:Workbook>';
+
+    const BOM = "\uFEFF"; // Для правильной кодировки
+    const blob = new Blob([BOM + xml], { type: 'application/vnd.ms-excel' });
+    const filename = `${startDate}///${endDate}.xls`;
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+
+    logMessage("XLSX успешно скачан: " + filename);
+  } catch (e) {
+    logMessage("Ошибка при скачивании XLSX: " + e.message);
+  }
+});
+
+
+// --- Скачивание CSV с логом ---
+
+downloadCSVButton.addEventListener("click", () => {
+  try {
+    const container = document.getElementById(TableManager.config.tableContainer);
+    const table = container.querySelector("table");
+    if (!table) throw new Error("Таблица не найдена");
+
+    const isTransposed = window.AppState.transposed;
+    const rawData = TableManager.getRawData(); // исходные значения из БД
+    const formattedData = rawData.map(entry => ({ ...entry }));
+    const dates = formattedData.map(d => new Date(d.дата_отчета)).sort((a, b) => a - b);
+
+    // Форматирование дат
+    const startDate = dates[0] ? new Date(dates[0]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+    const endDate = dates[dates.length - 1] ? new Date(dates[dates.length - 1]).toLocaleDateString('ru-RU').split('.').reverse().join('-') : "unknown";
+
+    const fields = Object.keys(formattedData[0] || {}).filter(f => f !== "id");
+
+    let csv = [];
+
+    if (!isTransposed) {
+      // Горизонтальная таблица
+      const header = ["Дата", ...fields.filter(f => f !== "дата_отчета")];
+      csv.push(header.join(";"));
+
+      formattedData.forEach(entry => {
+        const row = [
+          new Date(entry.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'), // Форматируем дату
+          ...header.slice(1).map(key => entry[key])
+        ];
+        csv.push(row.join(";"));
+      });
+
+    } else {
+      // Транспонированная таблица
+      const header = ["Показатель", ...formattedData.map(d => new Date(d.дата_отчета).toLocaleDateString('ru-RU').split('.').reverse().join('-'))]; // Форматируем все даты
+      csv.push(header.join(";"));
+
+      fields.filter(f => f !== "дата_отчета").forEach(field => {
+        const row = [field, ...formattedData.map(d => d[field])];
+        csv.push(row.join(";"));
+      });
+    }
+
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
+    const filename = `${startDate}///${endDate}.csv`;
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+
+    logMessage("CSV успешно скачан: " + filename);
+  } catch (e) {
+    logMessage("Ошибка при скачивании CSV: " + e.message);
+  }
+});
+
+
+
+
+
+// --- Сохранение/восстановление стиля ---
+function persistStyleState() {
+  localStorage.setItem("sliderV", sliderV.value);
+  localStorage.setItem("sliderH", sliderH.value);
+}
+
+function restoreStyleState() {
+  sliderV.value = localStorage.getItem("sliderV") || 50;
+  sliderH.value = localStorage.getItem("sliderH") || 50;
+  updateStyles();
+}
+
+// --- Выбор ячейки ---
+document.addEventListener("click", (e) => {
+  if (e.target.tagName === 'TD') {
+    e.target.classList.add("selectedcell");
+  }
+});
+
+// --- Инициализация при загрузке ---
+document.addEventListener("DOMContentLoaded", () => {
+  restoreStyleState();
+
+  // Переопределим рендер таблицы для применения стилей
+  const originalRenderTable = TableManager.renderTable;
+  TableManager.renderTable = function (...args) {
+    originalRenderTable.apply(this, args);
+    updateStyles();
+  };
+});
+
+
+
+// --- Логгер ---
+function logMessage(msg) {
+  const logBox = document.querySelector(".log-box");
+  const placeholder = document.querySelector(".h5");
+
+  if (placeholder) placeholder.remove();
+
+  const time = new Date().toLocaleTimeString();
+  const entry = document.createElement("p");
+  entry.textContent = `[${time}] ${msg}`;
+
+  logBox.prepend(entry);
+
+  // Проверяем, прокручено ли в самый низ
+  const atBottom = logBox.scrollHeight - logBox.scrollTop === logBox.clientHeight;
+  if (atBottom) {
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+
+  const checkDataButton = document.getElementById('checkDataButton');
+  if (checkDataButton) {
+    checkDataButton.addEventListener('click', function() {
+      TableManager.checkData();
+    });
+  }
+});
+
+
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const passBtn = document.getElementById('passwordButton');
+    const login = document.getElementById('login');
+    const password = document.getElementById('password');
+    const saveBtn = document.getElementById('savepasswordButton');
+    const dHideBtn = document.getElementById('downloadHideButton');
+    const dContainer = document.getElementById('downloadContainer');
+     const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const rangeSelect = document.getElementById('rangeData');
+
+    // Функция для вычисления даты окончания в зависимости от выбранного промежутка
+    function calculateEndDate() {
+      const startDate = new Date(startDateInput.value);
+      const range = rangeSelect.value;
+
+      let endDate;
+
+      switch (range) {
+        case 'week':
+          endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 6); // 1 неделя
+          break;
+        case 'doubleweek':
+          endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 13); // 2 недели
+          break;
+        case 'month':
+          endDate = new Date(startDate);
+          endDate.setMonth(startDate.getMonth() + 1); // 1 месяц
+          break;
+        case 'quarter':
+          endDate = new Date(startDate);
+          endDate.setMonth(startDate.getMonth() + 3); // 3 месяца
+          break;
+        case 'year':
+          endDate = new Date(startDate);
+          endDate.setFullYear(startDate.getFullYear() + 1); // 1 год
+          break;
+        default:
+          endDate = new Date(startDate); // Если нет диапазона, оставляем дату как есть
+      }
+
+      // Устанавливаем рассчитанную дату окончания в поле endDate
+      endDateInput.value = endDate.toISOString().split('T')[0]; // Форматируем дату в формат YYYY-MM-DD
+    }
+
+    // Слушаем изменение поля startDate и rangeSelect
+    startDateInput.addEventListener('change', calculateEndDate);
+    rangeSelect.addEventListener('change', calculateEndDate);
+
+    // Вызываем сразу, чтобы правильно инициализировать дату окончания
+    calculateEndDate();
+    
+    
+    
+    dHideBtn.addEventListener('click', () => {
+      dContainer.classList.toggle('hidden');
+    });
+
+    passBtn.addEventListener('click', () => {
+      login.classList.toggle('hidden');
+      password.classList.toggle('hidden');
+      saveBtn.classList.toggle('hidden');
+    });
+    
+    saveBtn.addEventListener('click', () => {
+      const loginVal = login.value;
+      const passwordVal = password.value;
+
+      const data = {
+        login: loginVal,
+        password: passwordVal,
+        savedAt: new Date().toISOString()
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+
+      const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `пароли/password_${dateStr}.json`;
+
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+
+      logMessage("Пароль и логин сохранены");
+    });
+
+    updateStyles();
+
+    const APP_CONFIG = {
+      apiUrl: "http://10.200.1.105:8000/api/Database/getReportsByRange",
+      tableContainer: "tableContainer",
+      listsContainer: "listsContainer",
+      chartsContainer: "chartsContainer",
+      toggleButton: "toggleButton",
+      startDateInput: "startDate",
+      endDateInput: "endDate",
+      loadDataButton: "loadDataButton",
+      checkApiUrl: '/api/Database/redownloadReportsByDate',
+      checkStartDateInput: 'checkStartDate',
+      checkEndDateInput: 'checkEndDate',
+    };
+
+    window.AppState = {
+      originalData: [],
+      selectedParamsByList: [[]],
+      selectedDates: [],
+      activeListIndex: 0,
+      transposed: true,
+      chartsVisible: []
+    };
+
+    window.TableManager = TableManager;
+    window.ChartManager = ChartManager;
+
+    TableManager.init(APP_CONFIG);
+    ChartManager.init(APP_CONFIG);
+    await TableManager.loadData();
+  });
+</script>
+
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'963247ba89207dfc',t:'MTc1MzE4MDQxMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

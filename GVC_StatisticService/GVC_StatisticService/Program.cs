@@ -17,7 +17,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IPythonRunnerService, PythonRunnerService>();
 
 builder.Services.AddDbContext<StatisticDbContext>(options =>
-    options.UseNpgsql("Host=localhost;Port=5433;Username=postgres;Password=example;Database=statistic"));
+    options.UseNpgsql("Host=db;Port=5432;Username=postgres;Password=example;Database=statistic"));
 
 builder.Services.AddScoped<IStatisticDbContext>(provider =>
     provider.GetRequiredService<StatisticDbContext>());
@@ -50,15 +50,13 @@ builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+app.UseStaticFiles();
 app.UseCors();
 
 
@@ -79,6 +77,12 @@ RecurringJob.AddOrUpdate<IPythonRunnerService>(
     {
         MisfireHandling = MisfireHandlingMode.Ignorable
     });
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<StatisticDbContext>();
+    dbContext.Database.Migrate();
+}
 
 app.Run();
 

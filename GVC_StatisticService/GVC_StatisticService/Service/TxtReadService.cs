@@ -9,8 +9,8 @@ namespace GVC_StatisticService.Service
     {
         private readonly IStatisticDbContext statisticDbContext;
 
-        private readonly string filePathServices = Path.Combine(AppContext.BaseDirectory, "TxtFiles", "SCO_serv.txt");
-        private readonly string filePathTypes = Path.Combine(AppContext.BaseDirectory, "TxtFiles", "SCO_types.txt");
+        private readonly string filePathServices = "TxtFiles/SCO_serv.txt";
+        private readonly string filePathTypes = "TxtFiles/SCO_types.txt";
 
         public TxtReadService (IStatisticDbContext statisticDbContext)
         {
