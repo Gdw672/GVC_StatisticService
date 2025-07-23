@@ -80,7 +80,7 @@ namespace GVC_StatisticService.Service
         {
             var processStartInfo = new ProcessStartInfo
             {
-                FileName = "python",
+                FileName = "python3",
                 Arguments = $"\"{scriptPath}\" {arguments}",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

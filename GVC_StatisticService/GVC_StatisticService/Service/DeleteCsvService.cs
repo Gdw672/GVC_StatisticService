@@ -5,7 +5,7 @@ namespace GVC_StatisticService.Service
 {
     public class DeleteCsvService : IDeleteCsvService
     {
-        private readonly string filePathCsv = "/csv";
+        private readonly string filePathCsv = "/app/csvfiles";
 
         public string TryDeleteFile(string name)
         {

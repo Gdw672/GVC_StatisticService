@@ -6,6 +6,8 @@ from requests_ntlm import HttpNtlmAuth
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 
+BASE_SAVE_PATH = "/app/csvfiles"
+
 session = requests.Session()
 session.auth = HttpNtlmAuth(r"Логин", "Пароль")
 
@@ -32,7 +34,7 @@ MONTHS = {
 }
 
 for i in range(int(sys.argv[2])):
-
+    os.makedirs(BASE_SAVE_PATH, exist_ok=True)
     date += timedelta(days=1)
     print(date.strftime('%d.%m.%Y'), i)
     month = int(date.month)
@@ -116,5 +118,9 @@ for i in range(int(sys.argv[2])):
     exportUrl = re.search('"ExportUrlBase":"(.+?)"', response.text).groups()[0] + exportFormat
 
     response = session.get(host + exportUrl)
-    with open(f"Отчеты ЦС/2025/{(month + 2) // 3} квартал/{MONTHS[month]}/{date.strftime('%d.%m.%Y')}.csv", "wb") as f:
+
+    file_name = f"{date.strftime('%d.%m.%Y')}.csv"
+    full_path = os.path.join(BASE_SAVE_PATH, file_name)
+
+    with open(full_path, "wb") as f:
         f.write(response.content)

@@ -11,15 +11,15 @@ namespace GVC_StatisticService.Service
 {
     public class ReadCsvService : IReadCsvService
     {
-        private readonly string filePathCsv = "/csv";
+        private readonly string filePathCsv = "/app/csvfiles";
 
         public List<ReportBase> ReadCsvByName(string fileName, DateTime yesterday)
         {
             var fullPath = Path.Combine(filePathCsv, fileName);
 
-            using var reader = new StreamReader(fullPath);
-            using var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture);
+            var cleanedReader = SkipToHeader(fullPath, "Обращение,");
 
+            using var csvReader = new CsvReader(cleanedReader, CultureInfo.InvariantCulture);
             csvReader.Context.RegisterClassMap<ReportBaseMap>();
 
             var records = csvReader.GetRecords<ReportBase>().ToList();
@@ -40,8 +40,10 @@ namespace GVC_StatisticService.Service
                 }
                 record.дата_отчета = DateTime.SpecifyKind(yesterday, DateTimeKind.Utc);
             }
+
             return records;
         }
+
         public List<ReportBase> ReadCsvByName(DateTime dateTime)
         {
             var fileName = $"{dateTime:dd.MM.yyyy}.csv";

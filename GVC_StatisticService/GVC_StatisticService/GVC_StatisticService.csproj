@@ -23,11 +23,6 @@
 	</ItemGroup>
 
 	<!-- Обеспечиваем копирование всех CSV файлов -->
-	<ItemGroup>
-		<None Update="CsvFiles\**\*.*">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
 
 	<!-- Явное копирование отдельных файлов -->
 	<ItemGroup>
@@ -41,7 +36,6 @@
 
 	<!-- Добавление каталога -->
 	<ItemGroup>
-		<Folder Include="CsvFiles\" />
 		<Folder Include="wwwroot\" />
 	</ItemGroup>
 
