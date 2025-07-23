@@ -19,6 +19,10 @@ const TableManager = {
   if (!window.AppState.selectedDates) {
     window.AppState.selectedDates = new Set();
   }
+
+  if (!window.AppState.sliderValues) {
+        window.AppState.sliderValues = { min: 0, max: 100 }; // Пример начальных значений
+    }
 },
 
   setupEventListeners() {
@@ -29,10 +33,41 @@ const TableManager = {
       this.updateToggleButtonText();
     });
 
+    // Обработчики для ползунков
+    const minSlider = document.getElementById('mySliderV');
+    const maxSlider = document.getElementById('mySliderH');
+    
+
+    // Обработчик для кнопки сброса
+    const resetButton = document.getElementById('resetButton');
+    if (resetButton) {
+        resetButton.addEventListener('click', () => {
+            this.reset();
+        });
+    }
+
+    this.updateToggleButtonText();
+
     // Кнопка загрузки данных
     document.getElementById(this.config.loadDataButton).addEventListener('click', () => {
       this.loadData();
     });
+
+    const minSlider = document.getElementById('mySliderV');
+    const maxSlider = document.getElementById('mySliderH');
+
+    if (minSlider && maxSlider) {
+        minSlider.addEventListener('input', () => {
+            window.AppState.sliderValues.min = parseFloat(minSlider.value);
+            this.render();
+        });
+        maxSlider.addEventListener('input', () => {
+            window.AppState.sliderValues.max = parseFloat(maxSlider.value);
+            this.render();
+        });
+    }
+
+    this.updateToggleButtonText();
 
     // Обновляем текст кнопки при инициализации
     this.updateToggleButtonText();
@@ -527,6 +562,8 @@ const TableManager = {
       return;
     }
 
+
+
     // Фильтруем данные по диапазону дат активного списка
     const activeListDates = this.getSelectedDatesForList(window.AppState.activeListIndex);
     const filteredData = activeListDates.length > 0 
@@ -536,6 +573,17 @@ const TableManager = {
           )
         )
       : formattedData;
+
+      filteredData = filteredData.filter(entry => {
+        return Object.keys(entry).some(key => {
+            if (key.startsWith("процент_") && typeof entry[key] === 'string') {
+                const value = parseFloat(entry[key].replace('%', '')) / 100;
+                return value >= window.AppState.sliderValues.min / 100 && 
+                       value <= window.AppState.sliderValues.max / 100;
+            }
+            return true;
+        });
+    });
 
     if (filteredData.length === 0) {
       container.innerHTML = "<p class='no-data'>Нет данных для выбранного диапазона дат</p>";
@@ -791,6 +839,42 @@ renderTransposedTable(table, formattedData, fields) {
     this.renderTabs();
     this.render();
   },
+
+  reset() {
+    // Сбрасываем состояние приложения
+    window.AppState.originalData = [];
+    window.AppState.selectedParamsByList = [[]];
+    window.AppState.selectedDates = new Set();
+    window.AppState.selectedCells = new Set();
+    window.AppState.activeListIndex = 0;
+    window.AppState.chartsVisible = [false];
+    window.AppState.dateRangesByList = [{ startDate: '', endDate: '' }];
+    window.AppState.transposed = false;
+    window.AppState.sliderValues = { min: 0, max: 100 }; // Сбрасываем ползунки
+
+    // Сбрасываем значения ползунков в DOM
+    const minSlider = document.getElementById('mySliderV');
+    const maxSlider = document.getElementById('mySliderH');
+    if (minSlider && maxSlider) {
+        minSlider.value = 50;
+        maxSlider.value = 50;
+    }
+
+    // Сбрасываем значения дат в DOM
+    const startDateInput = document.getElementById(this.config.startDateInput);
+    const endDateInput = document.getElementById(this.config.endDateInput);
+    if (startDateInput && endDateInput) {
+        startDateInput.value = '';
+        endDateInput.value = '';
+    }
+
+    // Обновляем текст кнопки поворота
+    this.updateToggleButtonText();
+
+    // Перерисовываем табы и таблицу
+    this.renderTabs();
+    this.render();
+},
 
   // Алиас для совместимости
   renderLists() {
