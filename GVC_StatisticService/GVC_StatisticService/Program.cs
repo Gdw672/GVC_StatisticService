@@ -18,7 +18,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IPythonRunnerService, PythonRunnerService>();
 
 builder.Services.AddDbContext<StatisticDbContext>(options =>
-    options.UseNpgsql("Host=db;Port=5433;Username=postgres;Password=example;Database=statistic"));
+    options.UseNpgsql("Host=db;Port=5432;Username=postgres;Password=example;Database=statistic"));
 
 builder.Services.AddScoped<IStatisticDbContext>(provider =>
     provider.GetRequiredService<StatisticDbContext>());
@@ -54,10 +54,11 @@ var app = builder.Build();
     app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+app.UseCors();
 app.UseAuthorization();
 app.MapControllers();
 app.UseStaticFiles();
-app.UseCors();
+
 
 
 // Hangfire Dashboard

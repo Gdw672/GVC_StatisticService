@@ -132,6 +132,13 @@ window.addEventListener('scroll', () => {
   lastScrollTop = scrollTop;
 });
 
+function setupCellSelection() {
+  document.addEventListener("click", (e) => {
+    if (e.target.tagName === 'TD' && !e.target.classList.contains('date-column')) {
+      e.target.classList.toggle("selectedcell");
+    }
+  });
+}
 
 
 function btncheck() {
@@ -535,16 +542,12 @@ function setupExportButtons() {
 
 }
 
-
-
-
-
 // Инициализация начальных значений
 updateStyles();
 
     // Инициализация приложения
     const APP_CONFIG = {
-      apiUrl: "http://localhost:5134/api/Database/getReportsByRange",
+        apiUrl: "http://localhost:5134/api/Database/getReportsByRange",
       tableContainer: "tableContainer",
       listsContainer: "listsContainer",
       chartsContainer: "chartsContainer",
@@ -552,7 +555,7 @@ updateStyles();
       startDateInput: "startDate",
       endDateInput: "endDate",
       loadDataButton: "loadDataButton",
-      checkApiUrl: "http://localhost:5134/api/Database/redownloadReportsByDate",
+        checkApiUrl: "http://localhost:5134/api/Database/redownloadReportsByDate",
       checkDataButton: "checkDataButton",
     };
 
@@ -560,12 +563,12 @@ updateStyles();
     window.AppState = {
       originalData: [],
       selectedParamsByList: [[]],
-      selectedDates: [],
+      selectedDates: new Set(),
+      selectedCells: new Set(),
       activeListIndex: 0,
       transposed: true, // Стартуем в перевернутом виде
       chartsVisible: [], // массив булевых значений для видимости графиков
-      selectedCells: new Set(),
-  styleState: { sliderV: 50, sliderH: 50 },
+  
     };
     
     // Инициализируем менеджеры
@@ -595,7 +598,6 @@ updateStyles();
 
 
      setupExportButtons();  
-     setupRowSelection(); 
     initCurrentMonthDates();
     setupDateCalculators();
      setupCellSelection();
