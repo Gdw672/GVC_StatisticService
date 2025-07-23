@@ -139,10 +139,11 @@ const TableManager = {
     }
   },
 
-  resetAppState(data) {
+ resetAppState(data) {
   window.AppState.originalData = data;
   window.AppState.selectedParamsByList = [[]];
-  window.AppState.selectedDates = new Set(); // Сбрасываем как Set
+  window.AppState.selectedDates = new Set();
+  window.AppState.selectedCells = new Set(); // Сбрасываем выделенные ячейки
   window.AppState.activeListIndex = 0;
   window.AppState.chartsVisible = [false];
   window.AppState.dateRangesByList = [{ startDate: '', endDate: '' }];
@@ -553,7 +554,7 @@ const TableManager = {
     container.appendChild(table);
   },
 
- renderNormalTable(table, formattedData, fields) {
+renderNormalTable(table, formattedData, fields) {
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
   
@@ -578,42 +579,63 @@ const TableManager = {
 
   const tbody = document.createElement("tbody");
   
-  // Разделяем данные на выбранные и невыбранные
-  const selectedData = formattedData.filter(entry => window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
-  const unselectedData = formattedData.filter(entry => !window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
+  // Фильтруем данные, чтобы исключить записи с undefined датами
+  const validData = formattedData.filter(entry => entry.дата_отчета_raw instanceof Date);
+  const selectedData = validData.filter(entry => window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
+  const unselectedData = validData.filter(entry => !window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
   
-  // Сортируем каждую группу по дате
-  const sortedSelected = selectedData.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw);
-  const sortedUnselected = unselectedData.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw);
-  
-  // Объединяем: сначала выбранные, затем невыбранные
-  const tableData = [...sortedSelected, ...sortedUnselected];
+  const tableData = [...selectedData.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw), 
+                    ...unselectedData.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw)];
+
+  // Очищаем устаревшие ключи selectedCells
+  const validKeys = new Set(tableData.flatMap(entry => 
+    fields.filter(f => f !== "дата_отчета").map(field => `${entry.дата_отчета_raw.getTime()}-${field}`)
+  ));
+  window.AppState.selectedCells = new Set([...window.AppState.selectedCells].filter(key => validKeys.has(key)));
 
   tableData.forEach(entry => {
     const row = document.createElement("tr");
+    if (entry.дата_отчета_raw instanceof Date && window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime())) {
+      row.classList.add("pinned-date");
+    }
     
     const dateCell = document.createElement("td");
-    dateCell.textContent = entry.дата_отчета;
+    dateCell.textContent = entry.дата_отчета || "Нет даты";
     dateCell.className = "date-column";
-    // Визуальная индикация выделения
-    if (window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime())) {
+    if (entry.дата_отчета_raw instanceof Date && window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime())) {
       dateCell.classList.add("selected");
     }
-    // Обработчик клика для переключения выделения
     dateCell.addEventListener("click", () => {
-      const timestamp = entry.дата_отчета_raw.getTime();
-      if (window.AppState.selectedDates.has(timestamp)) {
-        window.AppState.selectedDates.delete(timestamp);
-      } else {
-        window.AppState.selectedDates.add(timestamp);
+      if (entry.дата_отчета_raw instanceof Date) {
+        const timestamp = entry.дата_отчета_raw.getTime();
+        if (window.AppState.selectedDates.has(timestamp)) {
+          window.AppState.selectedDates.delete(timestamp);
+        } else {
+          window.AppState.selectedDates.add(timestamp);
+        }
+        this.render();
       }
-      this.render(); // Перерисовываем таблицу
     });
     row.appendChild(dateCell);
 
     fields.filter(f => f !== "дата_отчета").forEach(field => {
       const cell = document.createElement("td");
-      cell.textContent = entry[field];
+      cell.textContent = entry[field] || "";
+      const cellKey = entry.дата_отчета_raw instanceof Date ? `${entry.дата_отчета_raw.getTime()}-${field}` : null;
+      if (cellKey && window.AppState.selectedCells.has(cellKey)) {
+        cell.classList.add("selectedcell");
+      }
+      cell.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (cellKey) {
+          if (window.AppState.selectedCells.has(cellKey)) {
+            window.AppState.selectedCells.delete(cellKey);
+          } else {
+            window.AppState.selectedCells.add(cellKey);
+          }
+          this.render();
+        }
+      });
       row.appendChild(cell);
     });
 
@@ -623,7 +645,7 @@ const TableManager = {
   table.appendChild(tbody);
 },
 
- renderTransposedTable(table, formattedData, fields) {
+renderTransposedTable(table, formattedData, fields) {
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
   
@@ -632,33 +654,30 @@ const TableManager = {
   paramHeader.className = "param-column";
   headerRow.appendChild(paramHeader);
 
-  // Разделяем данные на выбранные и невыбранные
-  const allEntries = formattedData;
-  const selectedEntries = allEntries.filter(entry => window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
-  const unselectedEntries = allEntries.filter(entry => !window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
+  const validData = formattedData.filter(entry => entry.дата_отчета_raw instanceof Date);
+  const selectedEntries = validData.filter(entry => window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
+  const unselectedEntries = validData.filter(entry => !window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
   
-  const sortedSelectedEntries = selectedEntries.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw);
-  const sortedUnselectedEntries = unselectedEntries.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw);
-  
-  const tableEntries = [...sortedSelectedEntries, ...sortedUnselectedEntries];
+  const tableEntries = [...selectedEntries.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw), 
+                       ...unselectedEntries.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw)];
 
-  tableEntries.forEach(entry => {
+  tableEntries.forEach((entry, index) => {
     const th = document.createElement("th");
-    th.textContent = entry.дата_отчета;
+    th.textContent = entry.дата_отчета || "Нет даты";
     th.className = "date-column";
-    // Визуальная индикация выделения
-    if (window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime())) {
+    if (entry.дата_отчета_raw instanceof Date && window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime())) {
       th.classList.add("selected");
     }
-    // Обработчик клика для переключения выделения
     th.addEventListener("click", () => {
-      const timestamp = entry.дата_отчета_raw.getTime();
-      if (window.AppState.selectedDates.has(timestamp)) {
-        window.AppState.selectedDates.delete(timestamp);
-      } else {
-        window.AppState.selectedDates.add(timestamp);
+      if (entry.дата_отчета_raw instanceof Date) {
+        const timestamp = entry.дата_отчета_raw.getTime();
+        if (window.AppState.selectedDates.has(timestamp)) {
+          window.AppState.selectedDates.delete(timestamp);
+        } else {
+          window.AppState.selectedDates.add(timestamp);
+        }
+        this.render();
       }
-      this.render(); // Перерисовываем таблицу
     });
     headerRow.appendChild(th);
   });
@@ -667,6 +686,13 @@ const TableManager = {
   table.appendChild(thead);
 
   const tbody = document.createElement("tbody");
+
+  // Очищаем устаревшие ключи selectedCells
+  const validKeys = new Set(tableEntries.flatMap(entry => 
+    fields.filter(f => f !== "дата_отчета").map(field => `${entry.дата_отчета_raw.getTime()}-${field}`)
+  ));
+  window.AppState.selectedCells = new Set([...window.AppState.selectedCells].filter(key => validKeys.has(key)));
+
   fields.filter(f => f !== "дата_отчета").forEach(field => {
     const row = document.createElement("tr");
     const paramCell = document.createElement("td");
@@ -679,9 +705,27 @@ const TableManager = {
     paramCell.addEventListener("click", () => this.toggleParam(field));
     row.appendChild(paramCell);
 
-    tableEntries.forEach(entry => {
+    tableEntries.forEach((entry, index) => {
       const cell = document.createElement("td");
-      cell.textContent = entry[field];
+      cell.textContent = entry[field] || "";
+      const cellKey = entry.дата_отчета_raw instanceof Date ? `${entry.дата_отчета_raw.getTime()}-${field}` : null;
+      if (cellKey && window.AppState.selectedCells.has(cellKey)) {
+        cell.classList.add("selectedcell");
+      }
+      if (entry.дата_отчета_raw instanceof Date && window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime())) {
+        cell.classList.add("pinned-date");
+      }
+      cell.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (cellKey) {
+          if (window.AppState.selectedCells.has(cellKey)) {
+            window.AppState.selectedCells.delete(cellKey);
+          } else {
+            window.AppState.selectedCells.add(cellKey);
+          }
+          this.render();
+        }
+      });
       row.appendChild(cell);
     });
 

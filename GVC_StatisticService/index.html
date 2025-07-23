@@ -134,8 +134,35 @@ window.addEventListener('scroll', () => {
 
 function setupCellSelection() {
   document.addEventListener("click", (e) => {
-    if (e.target.tagName === 'TD' && !e.target.classList.contains('date-column')) {
-      e.target.classList.toggle("selectedcell");
+    if (e.target.tagName === 'TD' && !e.target.classList.contains('date-column') && !e.target.classList.contains('param-column')) {
+      const row = e.target.parentElement;
+      const table = row.parentElement.parentElement;
+      const rowIndex = Array.from(row.parentElement.children).indexOf(row);
+      const cellIndex = Array.from(row.children).indexOf(e.target);
+      
+      // Определяем дату и параметр для ячейки
+      const isTransposed = window.AppState.transposed;
+      const formattedData = window.AppState.originalData.map(TableManager.formatEntry);
+      const fields = Object.keys(formattedData[0] || {}).filter(f => f !== "id" && f !== "дата_отчета_raw");
+      
+      let date, param;
+      if (!isTransposed) {
+        date = formattedData[rowIndex].дата_отчета_raw.getTime();
+        param = fields[cellIndex - 1]; // -1, так как первая колонка — дата
+      } else {
+        date = formattedData[cellIndex - 1].дата_отчета_raw.getTime();
+        param = fields[rowIndex];
+      }
+      
+      const cellKey = `${date}-${param}`;
+      
+      if (e.target.classList.contains("selectedcell")) {
+        e.target.classList.remove("selectedcell");
+        window.AppState.selectedCells.delete(cellKey);
+      } else {
+        e.target.classList.add("selectedcell");
+        window.AppState.selectedCells.add(cellKey);
+      }
     }
   });
 }
@@ -568,6 +595,7 @@ updateStyles();
       originalData: [],
       selectedParamsByList: [[]],
       selectedDates: new Set(),
+      selectedCells: new Set(),
       activeListIndex: 0,
       transposed: true, // Стартуем в перевернутом виде
       chartsVisible: [], // массив булевых значений для видимости графиков

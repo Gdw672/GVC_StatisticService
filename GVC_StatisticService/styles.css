@@ -514,8 +514,9 @@ body.scrolled .header:focus-within {
     color: var(--gray-700);
 }
 
-.table-container tr:hover {
-    background: var(--gray-100);
+
+.table-container tr:hover td:not(.date-column, .param-column) {
+    background-color: var(--gray-200);
 }
 
 .table-container th:first-child,
@@ -544,32 +545,9 @@ th.selected, td.selected {
     font-weight: 700;
 }
 
-/* Выделение строки в нормальном виде */
-tr.selectedcell {
-  background-color: #e0e0e0;
-  font-weight: bold;
-}
-
-/* Выделение ячейки даты */
-td.date-column.selected, th.date-column.selected {
-  background-color: #d0d0d0;
-  font-weight: bold;
-}
-
-/* Выделение отдельных ячеек */
-td.selectedcell {
-  background-color: #f0f0f0;
-}
-
-/* Выделение столбцов в транспонированном виде */
-td.selected-column, th.date-column.selected {
-  background-color: #e0e0e0;
-  font-weight: bold;
-}
-
-  .pinned-date-column {
-    color: black;
-    font-weight: 700!important;
+  .pinned-date {
+    background-color: #ffffff;
+    font-weight: 1000!important;
   }
 
 /* Scrollbars */
