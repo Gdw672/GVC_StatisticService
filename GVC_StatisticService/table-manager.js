@@ -2,19 +2,24 @@ const TableManager = {
   config: null,
 
   init(config) {
-    this.config = config;
-    this.setupEventListeners();
-    
-    // Инициализируем настройки графиков
-    if (!window.AppState.chartSettings) {
-      window.AppState.chartSettings = [];
-    }
-    
-    // Инициализируем диапазоны дат для каждого списка
-    if (!window.AppState.dateRangesByList) {
-      window.AppState.dateRangesByList = [{ startDate: '', endDate: '' }];
-    }
-  },
+  this.config = config;
+  this.setupEventListeners();
+  
+  // Инициализируем настройки графиков
+  if (!window.AppState.chartSettings) {
+    window.AppState.chartSettings = [];
+  }
+  
+  // Инициализируем диапазоны дат для каждого списка
+  if (!window.AppState.dateRangesByList) {
+    window.AppState.dateRangesByList = [{ startDate: '', endDate: '' }];
+  }
+  
+  // Инициализируем selectedDates как Set
+  if (!window.AppState.selectedDates) {
+    window.AppState.selectedDates = new Set();
+  }
+},
 
   setupEventListeners() {
     // Кнопка поворота таблицы
@@ -135,13 +140,13 @@ const TableManager = {
   },
 
   resetAppState(data) {
-    window.AppState.originalData = data;
-    window.AppState.selectedParamsByList = [[]];
-    window.AppState.selectedDates = [];
-    window.AppState.activeListIndex = 0;
-    window.AppState.chartsVisible = [false];
-    window.AppState.dateRangesByList = [{ startDate: '', endDate: '' }];
-  },
+  window.AppState.originalData = data;
+  window.AppState.selectedParamsByList = [[]];
+  window.AppState.selectedDates = new Set(); // Сбрасываем как Set
+  window.AppState.activeListIndex = 0;
+  window.AppState.chartsVisible = [false];
+  window.AppState.dateRangesByList = [{ startDate: '', endDate: '' }];
+},
 
   showLoadingState() {
     const button = document.getElementById(this.config.loadDataButton);
@@ -548,98 +553,143 @@ const TableManager = {
     container.appendChild(table);
   },
 
-  renderNormalTable(table, formattedData, fields) {
-    const thead = document.createElement("thead");
-    const headerRow = document.createElement("tr");
+ renderNormalTable(table, formattedData, fields) {
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  
+  const dateHeader = document.createElement("th");
+  dateHeader.textContent = "Дата";
+  dateHeader.className = "date-column";
+  headerRow.appendChild(dateHeader);
+
+  fields.filter(f => f !== "дата_отчета").forEach(field => {
+    const th = document.createElement("th");
+    th.textContent = field;
+    th.title = `Нажмите для ${window.AppState.selectedParamsByList[window.AppState.activeListIndex].includes(field) ? 'удаления из' : 'добавления в'} график`;
+    if (window.AppState.selectedParamsByList[window.AppState.activeListIndex].includes(field)) {
+      th.classList.add("selected");
+    }
+    th.addEventListener("click", () => this.toggleParam(field));
+    headerRow.appendChild(th);
+  });
+  
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  
+  // Разделяем данные на выбранные и невыбранные
+  const selectedData = formattedData.filter(entry => window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
+  const unselectedData = formattedData.filter(entry => !window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
+  
+  // Сортируем каждую группу по дате
+  const sortedSelected = selectedData.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw);
+  const sortedUnselected = unselectedData.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw);
+  
+  // Объединяем: сначала выбранные, затем невыбранные
+  const tableData = [...sortedSelected, ...sortedUnselected];
+
+  tableData.forEach(entry => {
+    const row = document.createElement("tr");
     
-    const dateHeader = document.createElement("th");
-    dateHeader.textContent = "Дата";
-    dateHeader.className = "date-column";
-    headerRow.appendChild(dateHeader);
+    const dateCell = document.createElement("td");
+    dateCell.textContent = entry.дата_отчета;
+    dateCell.className = "date-column";
+    // Визуальная индикация выделения
+    if (window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime())) {
+      dateCell.classList.add("selected");
+    }
+    // Обработчик клика для переключения выделения
+    dateCell.addEventListener("click", () => {
+      const timestamp = entry.дата_отчета_raw.getTime();
+      if (window.AppState.selectedDates.has(timestamp)) {
+        window.AppState.selectedDates.delete(timestamp);
+      } else {
+        window.AppState.selectedDates.add(timestamp);
+      }
+      this.render(); // Перерисовываем таблицу
+    });
+    row.appendChild(dateCell);
 
     fields.filter(f => f !== "дата_отчета").forEach(field => {
-      const th = document.createElement("th");
-      th.textContent = field;
-      th.title = `Нажмите для ${window.AppState.selectedParamsByList[window.AppState.activeListIndex].includes(field) ? 'удаления из' : 'добавления в'} график`;
-      
-      if (window.AppState.selectedParamsByList[window.AppState.activeListIndex].includes(field)) {
-        th.classList.add("selected");
+      const cell = document.createElement("td");
+      cell.textContent = entry[field];
+      row.appendChild(cell);
+    });
+
+    tbody.appendChild(row);
+  });
+
+  table.appendChild(tbody);
+},
+
+ renderTransposedTable(table, formattedData, fields) {
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  
+  const paramHeader = document.createElement("th");
+  paramHeader.textContent = "Показатель";
+  paramHeader.className = "param-column";
+  headerRow.appendChild(paramHeader);
+
+  // Разделяем данные на выбранные и невыбранные
+  const allEntries = formattedData;
+  const selectedEntries = allEntries.filter(entry => window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
+  const unselectedEntries = allEntries.filter(entry => !window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
+  
+  const sortedSelectedEntries = selectedEntries.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw);
+  const sortedUnselectedEntries = unselectedEntries.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw);
+  
+  const tableEntries = [...sortedSelectedEntries, ...sortedUnselectedEntries];
+
+  tableEntries.forEach(entry => {
+    const th = document.createElement("th");
+    th.textContent = entry.дата_отчета;
+    th.className = "date-column";
+    // Визуальная индикация выделения
+    if (window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime())) {
+      th.classList.add("selected");
+    }
+    // Обработчик клика для переключения выделения
+    th.addEventListener("click", () => {
+      const timestamp = entry.дата_отчета_raw.getTime();
+      if (window.AppState.selectedDates.has(timestamp)) {
+        window.AppState.selectedDates.delete(timestamp);
+      } else {
+        window.AppState.selectedDates.add(timestamp);
       }
-      th.addEventListener("click", () => this.toggleParam(field));
-      headerRow.appendChild(th);
+      this.render(); // Перерисовываем таблицу
     });
-    
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
+    headerRow.appendChild(th);
+  });
 
-    const tbody = document.createElement("tbody");
-    const sortedData = this.getSortedData(formattedData);
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
 
-    sortedData.forEach(entry => {
-      const row = document.createElement("tr");
+  const tbody = document.createElement("tbody");
+  fields.filter(f => f !== "дата_отчета").forEach(field => {
+    const row = document.createElement("tr");
+    const paramCell = document.createElement("td");
+    paramCell.textContent = field;
+    paramCell.className = "param-column";
+    paramCell.title = `Нажмите для ${window.AppState.selectedParamsByList[window.AppState.activeListIndex].includes(field) ? 'удаления из' : 'добавления в'} график`;
+    if (window.AppState.selectedParamsByList[window.AppState.activeListIndex].includes(field)) {
+      paramCell.classList.add("selected");
+    }
+    paramCell.addEventListener("click", () => this.toggleParam(field));
+    row.appendChild(paramCell);
 
-      const dateCell = document.createElement("td");
-      dateCell.textContent = entry.дата_отчета;
-      dateCell.className = "date-column";
-      row.appendChild(dateCell);
-
-      fields.filter(f => f !== "дата_отчета").forEach(field => {
-        const cell = document.createElement("td");
-        cell.textContent = entry[field];
-        row.appendChild(cell);
-      });
-
-      tbody.appendChild(row);
-    });
-
-    table.appendChild(tbody);
-  },
-
-  renderTransposedTable(table, formattedData, fields) {
-    const thead = document.createElement("thead");
-    const headerRow = document.createElement("tr");
-    
-    const paramHeader = document.createElement("th");
-    paramHeader.textContent = "Показатель";
-    paramHeader.className = "param-column";
-    headerRow.appendChild(paramHeader);
-
-    const sortedDates = this.getSortedData(formattedData);
-    sortedDates.forEach(entry => {
-      const th = document.createElement("th");
-      th.textContent = entry.дата_отчета;
-      th.className = "date-column";
-      headerRow.appendChild(th);
+    tableEntries.forEach(entry => {
+      const cell = document.createElement("td");
+      cell.textContent = entry[field];
+      row.appendChild(cell);
     });
 
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
+    tbody.appendChild(row);
+  });
 
-    const tbody = document.createElement("tbody");
-    fields.filter(f => f !== "дата_отчета").forEach(field => {
-      const row = document.createElement("tr");
-      const paramCell = document.createElement("td");
-      paramCell.textContent = field;
-      paramCell.className = "param-column";
-      paramCell.title = `Нажмите для ${window.AppState.selectedParamsByList[window.AppState.activeListIndex].includes(field) ? 'удаления из' : 'добавления в'} график`;
-      
-      if (window.AppState.selectedParamsByList[window.AppState.activeListIndex].includes(field)) {
-        paramCell.classList.add("selected");
-      }
-      paramCell.addEventListener("click", () => this.toggleParam(field));
-      row.appendChild(paramCell);
-
-      sortedDates.forEach(entry => {
-        const cell = document.createElement("td");
-        cell.textContent = entry[field];
-        row.appendChild(cell);
-      });
-
-      tbody.appendChild(row);
-    });
-
-    table.appendChild(tbody);
-  },
+  table.appendChild(tbody);
+},
 
   getSortedData(formattedData) {
     const sortedData = [...formattedData];
