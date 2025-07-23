@@ -15,7 +15,8 @@ const ChartManager = {
   showChart(listIndex) {
 
     if (ChartManager.config !== null) {
-  TableManager.showChart(0);
+
+
 } else {
   console.warn("ChartManager ещё не инициализирован");
 }
