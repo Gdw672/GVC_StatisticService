@@ -1,7 +1,9 @@
 ﻿using GVC_StatisticService.Context.Interface;
 using GVC_StatisticService.Enum;
+using GVC_StatisticService.Model;
 using GVC_StatisticService.Model.Report;
 using GVC_StatisticService.Service.Interface;
+using GVC_StatisticService.Service.Interface.Test;
 using System.Runtime.InteropServices;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -12,12 +14,15 @@ namespace GVC_StatisticService.Service
         private readonly IReadCsvService readCsvService;
         private readonly IStatisticDbContext statisticDbContext;
         private readonly ICountReportService countReportService;
+        private readonly IReadCsvServiceTest readCsvServiceTest;
 
-        public ReportDbService(IReadCsvService readCsvService, IStatisticDbContext statisticDbContext, ICountReportService countReportService = null)
+        public ReportDbService(IReadCsvService readCsvService, IStatisticDbContext statisticDbContext, IReadCsvServiceTest readCsvServiceTest, ICountReportService countReportService = null)
         {
             this.readCsvService = readCsvService;
             this.statisticDbContext = statisticDbContext;
+            this.countReportService = countReportService;   
             this.countReportService = countReportService;
+            this.readCsvServiceTest = readCsvServiceTest;
         }
 
         public async Task<OperationResult> WriteAndCountReportByYesterday()
@@ -52,9 +57,24 @@ namespace GVC_StatisticService.Service
             return OperationResult.Ok;
         }
 
+        public async Task<List<CountReport>> WriteAndCountReportByDateTest(DateTime dateTime)
+        {
+            var nameOfFile = $"{dateTime.Day.ToString("D2")}.{dateTime.Month.ToString("D2")}.{dateTime.Year}.csv";
+            var reports = ReadFileByNameTest(nameOfFile, dateTime);
+
+            await statisticDbContext.WriteReports(reports);
+
+            return await countReportService.GetCountReports(dateTime);
+        }
+
         private List<ReportBase> ReadFileByName(string nameOfFile, DateTime yesterday)
         {
            return readCsvService.ReadCsvByName(nameOfFile, yesterday);
+        }
+
+        private List<ReportBase> ReadFileByNameTest(string nameOfFile, DateTime yesterday)
+        {
+            return readCsvServiceTest.ReadCsvByNameTest(nameOfFile, yesterday);
         }
 
         public DateTime GetYesterdayDate()

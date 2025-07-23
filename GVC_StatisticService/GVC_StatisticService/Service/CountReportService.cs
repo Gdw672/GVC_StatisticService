@@ -30,11 +30,18 @@ namespace GVC_StatisticService.Service
                 .Select(r => r.Обращение)
                 .ToHashSet();
 
-            //ToDo: проверить корректность
             var filteredReports2 = filteredReports
-                .Where(r => strList.Contains(r.Обращение))
-                .ToList();
+    .Where(r => strList.Contains(r.Обращение))
+    .DistinctBy(r => r.Обращение)
+    .ToList();
 
+
+            /* var filteredReports2 = filteredReports
+     .Where(r => strList.Contains(r.Обращение))
+     .GroupBy(r => r.Обращение)
+     .Select(g => g.First())  // Выбирает первую запись с этим Обращением
+     .ToList();
+ */
             double входной_поток_всего = filteredReports2.Sum(r => r.Доля) ?? 0;
             double цифровые_сервисы_всего = filteredReports2
                 .Where(r => r.РПА == "RPA" || r.РПА == "ЧБ" || r.РПА == "ЧБП")
