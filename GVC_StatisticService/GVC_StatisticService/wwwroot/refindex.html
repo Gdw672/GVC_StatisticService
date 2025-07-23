@@ -7,7 +7,7 @@
   <script src="plotly-3.0.1.min.js" charset="utf-8"></script>
 </head>
 <body>
-   <div class="header">
+  <div class="header">
     <div class="container">
       <div class="header-content">
         <h1>Отчет по данным</h1>
@@ -114,149 +114,36 @@
     </div>
   </div>
 
+  
 
-  <!-- Подключаем модули -->
   <script src="table-manager.js"></script>
   <script src="chart-manager.js"></script>
-  
   <script>
-
-let lastScrollTop = 0;
-window.addEventListener('scroll', () => {
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  if (scrollTop > 1) {
-    document.body.classList.add('scrolled');
-  } else {
-    document.body.classList.remove('scrolled');
-  }
-  lastScrollTop = scrollTop;
-});
-
-
-
-function btncheck() {
-  const checkDataButton = document.getElementById("checkDataButton");
-
-  checkDataButton.addEventListener("click", () => {
-    checkData();
-  })}
-
-
-async function checkData() {
-  const startDate = document.getElementById('checkStartDate').value;
-  const endDate = document.getElementById('checkEndDate').value;
-  const checkApiUrl = "http://localhost:5134/api/Database/redownloadReportsByDate";
-
-
-  if (!startDate || !endDate) {
-    logMessage("Выберите диапазон дат");
-    return;
-  }
-
-  // Формируем URL с параметрами
-  const url = new URL(checkApiUrl);
-  url.searchParams.append('startDate', startDate);
-  url.searchParams.append('endDate', endDate);
-
-  logMessage(`Проверка данных для периода ${startDate} - ${endDate}`);
-
-  try {
-    const response = await fetch(url.toString());
-    
-    if (!response.ok) {
-      logMessage(`Ошибка HTTP: ${response.status}`);
-      return;
-    }
-
-    const data = await response.json();
-
-    if (!data || data.length === 0) {
-      logMessage("Нет данных для выбранного диапазона дат");
-      return;
-    }
-
-    logMessage(`Найдено ${data.length} записей данных`);
-    logMessage("Проверка завершена успешно");
-  } catch (error) {
-    logMessage(`Ошибка проверки данных: ${error.message}`);
-  }
-}
-
-function logMessage(msg) {
-  const logBox = document.querySelector(".log-box");
-  const placeholder = document.querySelector(".h5");
-
-  if (placeholder) placeholder.remove();
-
-  const time = new Date().toLocaleTimeString();
-  const entry = document.createElement("p");
-  entry.textContent = `[${time}] ${msg}`;
-
-  logBox.prepend(entry);
-
-  const atBottom = logBox.scrollHeight - logBox.scrollTop === logBox.clientHeight;
-  if (atBottom) {
-    logBox.scrollTop = logBox.scrollHeight;
-  }
-}
-
-
-function setupAuthSection() {
-  const passBtn = document.getElementById('passwordButton');
-  const login = document.getElementById('login');
-  const password = document.getElementById('password');
-  const saveBtn = document.getElementById('savepasswordButton');
-
-  passBtn.addEventListener('click', () => {
-    login.classList.toggle('hidden');
-    password.classList.toggle('hidden');
-    saveBtn.classList.toggle('hidden');
-  });
+const APP_CONFIG = {
+  apiUrl: "/api/Database/getReportsByRange",
+  tableContainer: "tableContainer",
+  listsContainer: "listsContainer",
+  chartsContainer: "chartsContainer",
+  toggleButton: "toggleButton",
+  startDateInput: "startDate",
+  endDateInput: "endDate",
+  loadDataButton: "loadDataButton",
+  checkApiUrl: '/api/Database/redownloadReportsByDate',
+  checkStartDateInput: 'checkStartDate',
+  checkEndDateInput: 'checkEndDate',
   
-  saveBtn.addEventListener('click', () => {
-    const loginVal = login.value;
-    const passwordVal = password.value;
+};
 
-    const data = {
-      login: loginVal,
-      password: passwordVal,
-      savedAt: new Date().toISOString()
-    };
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `пароли/password_${dateStr}.json`;
-
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(link.href);
-
-    logMessage("Пароль и логин сохранены");
-  });
-}
-
-
-document.addEventListener('DOMContentLoaded', function() {
-    const tabBtn = document.querySelector('.tab-btn');
-    const tabContent = document.querySelector('.tab-content');
-    
-    if (tabBtn && tabContent) {
-        tabBtn.addEventListener('click', function() {
-            // Переключаем класс active у кнопки
-            tabBtn.classList.toggle('active');
-            
-            // Переключаем видимость контента
-            if (tabContent.style.display === 'none') {
-                tabContent.style.display = '';
-            } else {
-                tabContent.style.display = 'none';
-            }
-        });
-    }
-
-});
+window.AppState = {
+  originalData: [],
+  selectedParamsByList: [[]],
+  selectedDates: [],
+  activeListIndex: 0,
+  transposed: true,
+  chartsVisible: [],
+  selectedCells: new Set(),
+  styleState: { sliderV: 50, sliderH: 50 }
+};
 
 function initCurrentMonthDates() {
   const now = new Date();
@@ -307,96 +194,129 @@ function calculateEndDate(startInputId, rangeSelectId, endInputId) {
   endDateInput.value = endDate.toISOString().split('T')[0];
 }
 
-function setupDownloadSection() {
-  const dHideBtn = document.getElementById('downloadHideButton');
-  const dContainer = document.getElementById('downloadContainer');
-
-  dHideBtn.addEventListener('click', () => {
-    dContainer.classList.toggle('hidden');
-  });
-}
-
-
-
 function setupDateCalculators() {
   const startDateInput = document.getElementById('startDate');
   const rangeSelect = document.getElementById('rangeData');
   const checkStartDateInput = document.getElementById('checkStartDate');
   const checkRangeSelect = document.getElementById('checkrangeData');
 
-  function safeCalculate(startId, rangeId, endId) {
-    const rangeValue = document.getElementById(rangeId).value;
-    if (rangeValue) {
-      calculateEndDate(startId, rangeId, endId);
-    }
-  }
-
-  startDateInput.addEventListener('change', () => safeCalculate('startDate', 'rangeData', 'endDate'));
-  rangeSelect.addEventListener('change', () => safeCalculate('startDate', 'rangeData', 'endDate'));
+  startDateInput.addEventListener('change', () => calculateEndDate('startDate', 'rangeData', 'endDate'));
+  rangeSelect.addEventListener('change', () => calculateEndDate('startDate', 'rangeData', 'endDate'));
   
-  checkStartDateInput.addEventListener('change', () => safeCalculate('checkStartDate', 'checkrangeData', 'checkEndDate'));
-  checkRangeSelect.addEventListener('change', () => safeCalculate('checkStartDate', 'checkrangeData', 'checkEndDate'));
+  checkStartDateInput.addEventListener('change', () => calculateEndDate('checkStartDate', 'checkrangeData', 'checkEndDate'));
+  checkRangeSelect.addEventListener('change', () => calculateEndDate('checkStartDate', 'checkrangeData', 'checkEndDate'));
 
-  // Не пересчитываем по умолчанию если пользователь ничего не выбрал
-  safeCalculate('startDate', 'rangeData', 'endDate');
-  safeCalculate('checkStartDate', 'checkrangeData', 'checkEndDate');
+  calculateEndDate('startDate', 'rangeData', 'endDate');
+  calculateEndDate('checkStartDate', 'checkrangeData', 'checkEndDate');
 }
 
+function persistStyleState() {
+  const sliderV = document.getElementById("mySliderV");
+  const sliderH = document.getElementById("mySliderH");
+  
+  window.AppState.styleState = {
+    sliderV: sliderV.value,
+    sliderH: sliderH.value
+  };
+  
+  function persistStyleState() {
+  try {
+    const sliderV = document.getElementById("mySliderV");
+    const sliderH = document.getElementById("mySliderH");
+    
+    window.AppState.styleState = {
+      sliderV: sliderV.value,
+      sliderH: sliderH.value
+    };
+    
+    localStorage.setItem("styleState", JSON.stringify(window.AppState.styleState));
+  } catch (e) {
+    console.warn('Не удалось сохранить состояние в localStorage:', e);
+  }
+}
+}
 
-const sliderV = document.getElementById("mySliderV");
-const sliderH = document.getElementById("mySliderH");
+function restoreStyleState() {
+  const saved = localStorage.getItem("styleState");
+  if (saved) {
+    window.AppState.styleState = JSON.parse(saved);
+  }
+  
+  const sliderV = document.getElementById("mySliderV");
+  const sliderH = document.getElementById("mySliderH");
+  
+  sliderV.value = window.AppState.styleState.sliderV;
+  sliderH.value = window.AppState.styleState.sliderH;
+}
 
-// Функция обновления стилей
 function updateStyles() {
-    // Получаем значения слайдеров
-    const valueV = sliderV.value;
-    const valueH = sliderH.value;
+  const sliderV = document.getElementById("mySliderV");
+  const sliderH = document.getElementById("mySliderH");
+  const table = document.querySelector(".table-container table");
+  
+  if (!table) return;
 
-if (document.querySelector(".table-container table")) {
-   // Применяем значения слайдеров к стилям (исключая первую ячейку)
-  if (document.querySelector(".table-container table")) {
-    // Применяем значения слайдеров к стилям (исключая первую ячейку)
-    document.querySelectorAll(".table-container th:not(:first-child)").forEach(th => {
-        th.style.fontSize = Math.max(5, valueV / 5) + "px";
-        th.style.padding = Math.max(1, valueV / 10) + "px";
-        
-        // Плавные переходы для всех свойств
-        th.style.transition = "all 0.2s ease";
-        
-        // Перенос текста для маленьких значений
-        if (valueV < 50) {
-            th.style.whiteSpace = "normal"; // разрешает перенос
-            th.style.wordWrap = "break-word"; // переносит длинные слова
-            th.style.wordBreak = "break-word"; // дополнительная поддержка
-        } else {
-            th.style.whiteSpace = "nowrap"; // запрещает перенос
-        }
-        
-        // Плавное изменение по вашей логике
-        if (valueV < 30) {
-            th.style.fontWeight = 100 + (valueV / 30) * 500;
-            th.style.letterSpacing = (0.2 * (30 - valueV) / 30) + "px";
-            th.style.lineHeight = 3 - ((valueV / 30) * 1.9);
-        } else if (valueV > 70) {
-            th.style.fontWeight = 600 + ((valueV - 70) / 30) * 100;
-            th.style.lineHeight = 1.1 - ((valueV - 70) / 30) * 1;
-            th.style.letterSpacing = "0px";
-        } else {
-            th.style.fontWeight = "700";
-            th.style.lineHeight = "1.1";
-            th.style.letterSpacing = "0px";
-        }
-    });
+  const ths = table.querySelectorAll("th");
+  const tds = table.querySelectorAll("td");
+
+  const fontSize = 10 + (sliderV.value * 0.2);
+  const padding = 2 + (sliderV.value * 0.1);
+  const lineHeight = 1 + sliderH.value / 100;
+
+  table.style.lineHeight = lineHeight;
+
+  [...ths, ...tds].forEach(cell => {
+    cell.style.fontSize = fontSize + "px";
+    cell.style.padding = padding + "px";
+  });
 }
 
-    document.querySelector(".table-container table").style.lineHeight = (valueH / 100) + 0.001;  // Например, от 0 до 1
-}
+function saveSelectedCells() {
+  const selectedCells = document.querySelectorAll('.selectedcell');
+  window.AppState.selectedCells = new Set();
+  
+  selectedCells.forEach(cell => {
+    const rowIndex = cell.parentNode.rowIndex;
+    const cellIndex = cell.cellIndex;
+    window.AppState.selectedCells.add(`${rowIndex}-${cellIndex}`);
+  });
 }
 
-// Добавляем события для слайдеров
-sliderV.addEventListener("input", updateStyles);
-sliderH.addEventListener("input", updateStyles);
+function restoreSelectedCells() {
+  const table = document.querySelector(".table-container table");
+  if (!table) return;
+  
+  window.AppState.selectedCells.forEach(cellId => {
+    const [rowIndex, cellIndex] = cellId.split('-').map(Number);
+    const row = table.rows[rowIndex];
+    if (row && row.cells[cellIndex]) {
+      row.cells[cellIndex].classList.add('selectedcell');
+    }
+  });
+}
 
+function setupSliders() {
+  const sliderV = document.getElementById("mySliderV");
+  const sliderH = document.getElementById("mySliderH");
+  const resetButton = document.getElementById("resetButton");
+
+  sliderV.addEventListener("input", () => {
+    updateStyles();
+    persistStyleState();
+  });
+
+  sliderH.addEventListener("input", () => {
+    updateStyles();
+    persistStyleState();
+  });
+
+  resetButton.addEventListener("click", () => {
+    sliderV.value = 50;
+    sliderH.value = 50;
+    updateStyles();
+    persistStyleState();
+  });
+}
 
 function setupExportButtons() {
   const downloadCSVButton = document.getElementById("csv-Button");
@@ -532,86 +452,161 @@ function setupExportButtons() {
       logMessage("Ошибка при скачивании XLSX: " + e.message);
     }
   });
-
 }
 
+function setupAuthSection() {
+  const passBtn = document.getElementById('passwordButton');
+  const login = document.getElementById('login');
+  const password = document.getElementById('password');
+  const saveBtn = document.getElementById('savepasswordButton');
 
-
-
-
-// Инициализация начальных значений
-updateStyles();
-
-    // Инициализация приложения
-    const APP_CONFIG = {
-      apiUrl: "http://localhost:5134/api/Database/getReportsByRange",
-      tableContainer: "tableContainer",
-      listsContainer: "listsContainer",
-      chartsContainer: "chartsContainer",
-      toggleButton: "toggleButton",
-      startDateInput: "startDate",
-      endDateInput: "endDate",
-      loadDataButton: "loadDataButton",
-      checkApiUrl: "http://localhost:5134/api/Database/redownloadReportsByDate",
-      checkDataButton: "checkDataButton",
-    };
-
-    // Глобальное состояние приложения
-    window.AppState = {
-      originalData: [],
-      selectedParamsByList: [[]],
-      selectedDates: [],
-      activeListIndex: 0,
-      transposed: true, // Стартуем в перевернутом виде
-      chartsVisible: [], // массив булевых значений для видимости графиков
-      selectedCells: new Set(),
-  styleState: { sliderV: 50, sliderH: 50 },
-    };
-    
-    // Инициализируем менеджеры
-    document.addEventListener('DOMContentLoaded', async () => {
-    const tabBtn = document.querySelector('.tab-btn');
-    const tabContent = document.querySelector('.tab-content');
-    
-    if (tabBtn && tabContent) {
-        tabBtn.addEventListener('click', function() {
-            // Переключаем класс active у кнопки
-            tabBtn.classList.toggle('active');
-            
-            // Переключаем видимость контента
-            if (tabContent.style.display === 'none') {
-                tabContent.style.display = '';
-            } else {
-                tabContent.style.display = 'none';
-            }
-        });
-    }
-
-    
-
-      // Делаем менеджеры доступными глобально
-      window.TableManager = TableManager;
-      window.ChartManager = ChartManager;
-
-
-     setupExportButtons();  
-     setupRowSelection(); 
-    initCurrentMonthDates();
-    setupDateCalculators();
-     setupCellSelection();
-     setupAuthSection();
-      
-      TableManager.init(APP_CONFIG);
-      ChartManager.init(APP_CONFIG);
-      
-      // Загружаем данные
-      await TableManager.loadData();
-
-      setupDownloadSection();
-      btncheck();
-    });
-  </script>
-</body>
-</html>
-    
+  passBtn.addEventListener('click', () => {
+    login.classList.toggle('hidden');
+    password.classList.toggle('hidden');
+    saveBtn.classList.toggle('hidden');
+  });
   
+  saveBtn.addEventListener('click', () => {
+    const loginVal = login.value;
+    const passwordVal = password.value;
+
+    const data = {
+      login: loginVal,
+      password: passwordVal,
+      savedAt: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `пароли/password_${dateStr}.json`;
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    logMessage("Пароль и логин сохранены");
+  });
+}
+
+function setupDownloadSection() {
+  const dHideBtn = document.getElementById('downloadHideButton');
+  const dContainer = document.getElementById('downloadContainer');
+  const checkDataButton = document.getElementById('checkDataButton');
+
+  dHideBtn.addEventListener('click', () => {
+    dContainer.classList.toggle('hidden');
+  });
+
+  if (checkDataButton) {
+    checkDataButton.addEventListener('click', function() {
+      TableManager.checkData();
+    });
+  }
+}
+
+function setupCellSelection() {
+  document.addEventListener("click", (e) => {
+    if (e.target.tagName === 'TD') {
+      e.target.classList.add("selectedcell");
+    }
+  });
+}
+
+function setupScrollEffects() {
+  let lastScrollTop = 0;
+  window.addEventListener('scroll', () => {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    document.body.classList.toggle('scrolled', scrollTop > 1);
+    lastScrollTop = scrollTop;
+  });
+}
+
+function logMessage(msg) {
+  const logBox = document.querySelector(".log-box");
+  const placeholder = document.querySelector(".h5");
+
+  if (placeholder) placeholder.remove();
+
+  const time = new Date().toLocaleTimeString();
+  const entry = document.createElement("p");
+  entry.textContent = `[${time}] ${msg}`;
+
+  logBox.prepend(entry);
+
+  const atBottom = logBox.scrollHeight - logBox.scrollTop === logBox.clientHeight;
+  if (atBottom) {
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+}
+
+function setupTableManagerOverrides() {
+  const originalRenderTable = TableManager.renderTable;
+  TableManager.renderTable = function (...args) {
+    saveSelectedCells();
+    originalRenderTable.apply(this, args);
+    updateStyles();
+    restoreSelectedCells();
+  };
+}
+
+function waitForPlotly() {
+  return new Promise((resolve, reject) => {
+    if (typeof Plotly !== 'undefined') {
+      resolve();
+      return;
+    }
+    
+    let attempts = 0;
+    const maxAttempts = 50; // 5 секунд максимум
+    
+    const checkPlotly = () => {
+      attempts++;
+      if (typeof Plotly !== 'undefined') {
+        resolve();
+      } else if (attempts >= maxAttempts) {
+        reject(new Error('Plotly не загрузился'));
+      } else {
+        setTimeout(checkPlotly, 100);
+      }
+    };
+    
+    checkPlotly();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await waitForPlotly();
+  const requiredElements = ['tableContainer', 'chartsContainer', 'listsContainer'];
+  const missingElements = requiredElements.filter(id => !document.getElementById(id));
+  
+  if (missingElements.length > 0) {
+    console.error('Отсутствуют элементы:', missingElements);
+    return;
+  }
+  
+  window.TableManager = TableManager;
+  window.ChartManager = ChartManager;
+  
+  initCurrentMonthDates();
+  setupDateCalculators();
+  setupSliders();
+  setupExportButtons();
+  setupAuthSection();
+  setupDownloadSection();
+  setupCellSelection();
+  setupScrollEffects();
+  
+  restoreStyleState();
+  
+  TableManager.init(APP_CONFIG);
+  ChartManager.init(APP_CONFIG);
+  
+  setupTableManagerOverrides();
+  
+  await TableManager.loadData();
+});
+</script>
+
+</html>

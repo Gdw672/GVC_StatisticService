@@ -37,6 +37,7 @@
 	<!-- Добавление каталога -->
 	<ItemGroup>
 		<Folder Include="wwwroot\" />
+		<Folder Include="CsvFiles\" />
 	</ItemGroup>
 
 	<!-- Пакеты -->

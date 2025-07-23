@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Hangfire.Dashboard;
+using GVC_StatisticService.Service.Interface.Test;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,19 +19,19 @@ builder.Services.AddScoped<IPythonRunnerService, PythonRunnerService>();
 
 builder.Services.AddDbContext<StatisticDbContext>(options =>
     options.UseNpgsql("Host=db;Port=5432;Username=postgres;Password=example;Database=statistic"));
+    options.UseNpgsql("Host=localhost;Port=5433;Username=postgres;Password=example;Database=statistic"));
 
 builder.Services.AddScoped<IStatisticDbContext>(provider =>
     provider.GetRequiredService<StatisticDbContext>());
 
 builder.Services.AddScoped<IReadCsvService, ReadCsvService>();
+builder.Services.AddScoped<IReadCsvServiceTest, ReadCsvService>();
 builder.Services.AddScoped<IReportDbService, ReportDbService>();
 builder.Services.AddScoped<ICountReportService, CountReportService>();
 builder.Services.AddScoped<ITxtReadService, TxtReadService>();
 builder.Services.AddScoped<IFileNameGenerateService, FileNameGenerateService>();
 builder.Services.AddScoped<IDeleteCsvService, DeleteCsvService>();
 builder.Services.AddScoped<IRedownloadFileService, RedownloadFileService>();
-
-
 
 builder.Services.AddCors(options =>
 {

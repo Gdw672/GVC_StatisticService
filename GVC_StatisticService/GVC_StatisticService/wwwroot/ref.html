@@ -57,17 +57,14 @@ const TableManager = {
       this.loadData();
     });
 
-
-
-    
+    // Data check button
+     document.getElementById(this.config.checkDataButton).addEventListener('click', () => {
+      this.checkData();
+    });
 
     // Update button text on initialization
     this.updateToggleButtonText();
   },
-
-
-
-
 
   updateToggleButtonText() {
     const button = document.getElementById(this.config.toggleButton);
@@ -101,7 +98,6 @@ const TableManager = {
     const result = { ...entry };
     if (result.дата_отчета) {
       result.дата_отчета_raw = new Date(result.дата_отчета);
-      result.дата_отчета_key = new Date(result.дата_отчета).toISOString().split('T')[0];
       result.дата_отчета = new Date(result.дата_отчета).toLocaleDateString("ru-RU");
     }
     for (let key in result) {
@@ -175,6 +171,71 @@ const TableManager = {
     }
   },
 
+async checkData() {
+
+  try {
+    const startDate = document.getElementById('checkStartDate').value;
+    const endDate = document.getElementById('checkEndDate').value;
+    
+    if (!startDate || !endDate) {
+      logMessage("Не выбран диапазон дат для проверки");
+      return;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      logMessage("Дата начала не может быть больше даты окончания");
+      return;
+    }
+    
+    const formattedStartDate = this.formatDateForAPI(startDate);
+    const formattedEndDate = this.formatDateForAPI(endDate);
+    
+    const url = new URL(this.config.checkApiUrl);
+    url.searchParams.append('startDate', formattedStartDate);
+    url.searchParams.append('endDate', formattedEndDate);
+    
+    logMessage(`Проверка данных для периода ${formattedStartDate} - ${formattedEndDate}`);
+    
+    const response = await fetch(url.toString());
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      
+      // Извлекаем имя файла из сообщения об ошибке
+      const pathMatch = errorText.match(/Could not find a part of the path '.*?([^\\\/]+\.csv)'/);
+      if (pathMatch) {
+        logMessage(`${pathMatch[1]} не найден`);
+      } else if (response.status === 500) {
+        logMessage("Внутренняя ошибка сервера");
+      } else if (response.status === 404) {
+        logMessage("Данные не найдены");
+      } else {
+        logMessage(`Ошибка HTTP: ${response.status}`);
+      }
+      return;
+    }
+    
+    const data = await response.json();
+    
+    if (!data || data.length === 0) {
+      logMessage("Нет данных для выбранного диапазона дат");
+      return;
+    }
+    
+    logMessage(`Найдено ${data.length} записей данных`);
+    logMessage("Проверка завершена успешно");
+    
+  } catch (error) {
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      logMessage("Ошибка подключения к серверу");
+    } else if (error.message.includes('JSON')) {
+      logMessage("Ошибка формата данных сервера");
+    } else {
+      logMessage(`Ошибка проверки данных: ${error.message}`);
+    }
+    console.error("Полная ошибка:", error);
+  }
+},
 
   resetAppState(data) {
     window.AppState.originalData = data;
@@ -214,17 +275,15 @@ const TableManager = {
   },
 
   togglePinnedDate(date) {
-  // Используйте ISO строку или timestamp для уникальной идентификации
-  const dateKey = new Date(date).toISOString().split('T')[0]; // YYYY-MM-DD
-  const index = window.AppState.pinnedDates.indexOf(dateKey);
-  
-  if (index >= 0) {
-    window.AppState.pinnedDates.splice(index, 1);
-  } else {
-    window.AppState.pinnedDates.push(dateKey);
-  }
-  this.render();
-},
+    const dateStr = new Date(date).toLocaleDateString("ru-RU");
+    const index = window.AppState.pinnedDates.indexOf(dateStr);
+    if (index >= 0) {
+      window.AppState.pinnedDates.splice(index, 1);
+    } else {
+      window.AppState.pinnedDates.push(dateStr);
+    }
+    this.render();
+  },
 
   updateDateRange(listIndex, startDate, endDate) {
     window.AppState.dateRangesByList[listIndex] = { startDate, endDate };
@@ -390,8 +449,6 @@ const TableManager = {
 
     
 
-
-    // Show/hide chart button
     const graphBtn = document.createElement('button');
     graphBtn.className = 'btn btn-xs btn-secondary first';
     graphBtn.id = 'graph-button'; 
@@ -435,49 +492,97 @@ const TableManager = {
     container.appendChild(tabsContainer);
   },
 
+  // createTabContent(params, index) {
+  //   const tabContent = document.createElement('div');
+  //   tabContent.className = 'tab-content';
+  //   tabContent.id = `tab-content-${index}`;
+    
+  //   if (index !== window.AppState.activeListIndex) {
+  //     tabContent.style.display = 'none';
+  //   }
+    
+  //   // Tags container
+  //   const tagsContainer = document.createElement('div');
+  //   tagsContainer.className = 'tags-container';
+    
+  //   if (params.length === 0) {
+  //     const emptyMessage = document.createElement('div');
+  //     emptyMessage.className = 'empty-message';
+  //     emptyMessage.textContent = 'Ничего не выбрано';
+  //     tagsContainer.appendChild(emptyMessage);
+  //   } else {
+  //     params.forEach(param => {
+  //       const tag = document.createElement('span');
+  //       tag.className = 'tag';
+  //       tag.textContent = param;
+        
+  //       // Assign tag class based on parameter mapping
+  //       const tagClass = this.paramToTagClass[param] || this.paramToTagClass['default'];
+  //       tag.classList.add(tagClass);
+        
+  //       tag.addEventListener('click', () => {
+  //         this.toggleParam(param);
+  //       });
+  //       tagsContainer.appendChild(tag);
+  //     });
+  //   }
+    
+  //   // Date filters container
+  //   const dateFilters = this.createDateFilters(index);
+    
+  //   tabContent.appendChild(tagsContainer);
+  //   tabContent.appendChild(dateFilters);
+    
+  //   return tabContent;
+  // }
+  // 
+  // 
   createTabContent(params, index) {
-    const tabContent = document.createElement('div');
-    tabContent.className = 'tab-content';
-    tabContent.id = `tab-content-${index}`;
-    
-    if (index !== window.AppState.activeListIndex) {
-      tabContent.style.display = 'none';
-    }
-    
-    // Tags container
-    const tagsContainer = document.createElement('div');
-    tagsContainer.className = 'tags-container';
-    
-    if (params.length === 0) {
-      const emptyMessage = document.createElement('div');
-      emptyMessage.className = 'empty-message';
-      emptyMessage.textContent = 'Ничего не выбрано';
-      tagsContainer.appendChild(emptyMessage);
-    } else {
-      params.forEach(param => {
-        const tag = document.createElement('span');
-        tag.className = 'tag';
-        tag.textContent = param;
-        
-        // Assign tag class based on parameter mapping
-        const tagClass = this.paramToTagClass[param] || this.paramToTagClass['default'];
-        tag.classList.add(tagClass);
-        
-        tag.addEventListener('click', () => {
-          this.toggleParam(param);
-        });
-        tagsContainer.appendChild(tag);
+  const tabContent = document.createElement('div');
+  tabContent.className = 'tab-content';
+  tabContent.id = `tab-content-${index}`;
+  
+  if (index !== window.AppState.activeListIndex) {
+    tabContent.style.display = 'none';
+  }
+
+  const tagsContainer = this.buildTagsContainer(params);
+  const dateFilters = this.createDateFilters(index);
+
+  tabContent.appendChild(tagsContainer);
+  tabContent.appendChild(dateFilters);
+
+  return tabContent;
+},
+
+buildTagsContainer(params) {
+  const tagsContainer = document.createElement('div');
+  tagsContainer.className = 'tags-container';
+
+  if (params.length === 0) {
+    const emptyMessage = document.createElement('div');
+    emptyMessage.className = 'empty-message';
+    emptyMessage.textContent = 'Ничего не выбрано';
+    tagsContainer.appendChild(emptyMessage);
+  } else {
+    params.forEach(param => {
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = param;
+
+      const tagClass = this.paramToTagClass[param] || this.paramToTagClass['default'];
+      tag.classList.add(tagClass);
+
+      tag.addEventListener('click', () => {
+        this.toggleParam(param);
       });
-    }
-    
-    // Date filters container
-    const dateFilters = this.createDateFilters(index);
-    
-    tabContent.appendChild(tagsContainer);
-    tabContent.appendChild(dateFilters);
-    
-    return tabContent;
-  },
+
+      tagsContainer.appendChild(tag);
+    });
+  }
+
+  return tagsContainer;
+},
   
 
   createDateFilters(index) {
