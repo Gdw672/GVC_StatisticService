@@ -514,8 +514,9 @@ body.scrolled .header:focus-within {
     color: var(--gray-700);
 }
 
-.table-container tr:hover {
-    background: var(--gray-100);
+
+.table-container tr:hover td:not(.date-column, .param-column) {
+    background-color: var(--gray-200);
 }
 
 .table-container th:first-child,
@@ -544,9 +545,9 @@ th.selected, td.selected {
     font-weight: 700;
 }
 
-  .pinned-date-column {
-    color: black;
-    font-weight: 700!important;
+  .pinned-date {
+    background-color: #ffffff;
+    font-weight: 1000!important;
   }
 
 /* Scrollbars */
@@ -924,6 +925,7 @@ div.tab-buttons > button.btn.btn-danger {
 #rangeData{
     width:15%;
 }
+
 
 .log-container {
     width: 250px;     /* Фиксированная ширина окна */
