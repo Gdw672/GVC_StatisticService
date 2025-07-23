@@ -552,6 +552,7 @@ const TableManager = {
     }
 
     container.appendChild(table);
+    updateStyles();
   },
 
 renderNormalTable(table, formattedData, fields) {
