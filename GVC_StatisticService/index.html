@@ -132,41 +132,7 @@ window.addEventListener('scroll', () => {
   lastScrollTop = scrollTop;
 });
 
-function setupCellSelection() {
-  document.addEventListener("click", (e) => {
-    if (e.target.tagName === 'TD') {
-      // Используем toggle для добавления/удаления класса
-      e.target.classList.toggle("selectedcell");
-    }
-  });
-}
 
-
-function setupRowSelection() {
-  document.addEventListener("click", (e) => {
-    if (e.target.tagName === 'T') {
-      const tr = e.target.closest('tr');
-      
-      // Переключаем класс на строке
-      tr.classList.toggle("selectedcell");
-      
-      // Если строка выбрана, перемещаем ее в начало таблицы
-      if (tr.classList.contains("selectedcell")) {
-        tr.parentElement.prepend(tr);  // Перемещаем строку в начало
-      } else {
-        // Если строка не выбрана, она остаётся в обычном порядке
-        const table = tr.closest('table');
-        const rows = Array.from(table.querySelectorAll('tr.selectedcell'));
-        if (rows.length > 1) {
-          // Убираем все строки с классом 'selectedcell' из начала
-          rows.forEach(row => row.classList.remove('selectedcell'));
-          // Сортируем их по порядку, не нарушая текущий порядок остальных строк
-          table.append(...rows.reverse());
-        }
-      }
-    }
-  });
-}
 
 function btncheck() {
   const checkDataButton = document.getElementById("checkDataButton");
@@ -597,7 +563,9 @@ updateStyles();
       selectedDates: [],
       activeListIndex: 0,
       transposed: true, // Стартуем в перевернутом виде
-      chartsVisible: [] // массив булевых значений для видимости графиков
+      chartsVisible: [], // массив булевых значений для видимости графиков
+      selectedCells: new Set(),
+  styleState: { sliderV: 50, sliderH: 50 },
     };
     
     // Инициализируем менеджеры
