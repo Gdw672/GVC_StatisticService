@@ -536,10 +536,27 @@ function setupExportButtons() {
 
       logMessage("XLSX успешно скачан: " + filename);
     } catch (e) {
-      logMessage("Ошибка при скачивании XLSX: " + e.message);
+      logMessage("Ошибка при скачивании XLSX: " + e.message);Ц
     }
   });
 
+}
+
+function setupResetButtons() {
+
+const resetButton = document.getElementById("resetButton");
+
+  resetButton.addEventListener("click", () => {
+    alert("Нажалось!");
+  const sliderV = document.getElementById('mySliderV');
+    const sliderH = document.getElementById('mySliderH');
+    sliderV.value = 50;
+    sliderH.value = 50;
+    window.AppState.selectedCells = new Set();
+    window.AppState.selectedDates = new Set();
+    window.updateStyles(); 
+    TableManager.render();
+  });
 }
 
 // Инициализация начальных значений
@@ -568,7 +585,7 @@ updateStyles();
       activeListIndex: 0,
       transposed: true, // Стартуем в перевернутом виде
       chartsVisible: [], // массив булевых значений для видимости графиков
-  
+      isTabContentHidden: false,
     };
     
     // Инициализируем менеджеры
@@ -602,6 +619,7 @@ updateStyles();
     setupDateCalculators();
      setupCellSelection();
      setupAuthSection();
+     setupResetButtons();
       
       TableManager.init(APP_CONFIG);
       ChartManager.init(APP_CONFIG);

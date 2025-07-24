@@ -43,22 +43,22 @@ const TableManager = {
     button.textContent = window.AppState.transposed ? 'Вертикальный вид' : 'Горизонтальный вид';
   },
 
-  addNewList() {
-    window.AppState.selectedParamsByList.push([]);
-    window.AppState.activeListIndex = window.AppState.selectedParamsByList.length - 1;
-    
-    // Добавляем новый диапазон дат для нового списка
-    window.AppState.dateRangesByList.push({ startDate: '', endDate: '' });
-    
-    // Синхронизируем состояние графиков
-    this.syncChartsState();
-    
-    this.renderTabs();
-    this.render();
-    
-    // Переключаемся на новый таб
-    this.switchTab(window.AppState.activeListIndex);
-  },
+addNewList() {
+  window.AppState.selectedParamsByList.push([]);
+  window.AppState.activeListIndex = window.AppState.selectedParamsByList.length - 1;
+  
+  // Добавляем новый диапазон дат для нового списка
+  window.AppState.dateRangesByList.push({ startDate: '', endDate: '' });
+  
+  // Синхронизируем состояние графиков
+  this.syncChartsState();
+  
+  this.renderTabs();
+  this.render();
+  
+  // Переключаемся на новый таб
+  this.switchTab(window.AppState.activeListIndex);
+},
 
   syncChartsState() {
     while (window.AppState.chartsVisible.length < window.AppState.selectedParamsByList.length) {
@@ -260,131 +260,126 @@ const TableManager = {
       .sort((a, b) => new Date(a) - new Date(b));
   },
 
-  renderTabs(wasHidden = false) {
-    const container = document.getElementById(this.config.listsContainer);
-    container.innerHTML = "";
-    
-    // Синхронизируем состояние графиков с количеством списков
-    this.syncChartsState();
-    this.syncDateRanges();
-    
-    // Создаем контейнер для табов
-    const tabsContainer = document.createElement('div');
-    tabsContainer.className = 'tabs-container';
+renderTabs() {
+  const container = document.getElementById(this.config.listsContainer);
+  container.innerHTML = "";
+  
+  // Синхронизируем состояние графиков с количеством списков
+  this.syncChartsState();
+  this.syncDateRanges();
+  
+  // Создаем контейнер для табов
+  const tabsContainer = document.createElement('div');
+  tabsContainer.className = 'tabs-container';
 
-    // Проверяем существование tab-nav
-    let tabNav = document.querySelector('.tab-nav');
-    if (!tabNav) {
-      tabNav = document.createElement('div');
-      tabNav.className = 'tab-nav';
-      tabsContainer.appendChild(tabNav);
-    }
-    
-    // Очищаем существующий tab-nav
-    tabNav.innerHTML = '';
-    
-   39
-    // Создаем кнопки табов
-    window.AppState.selectedParamsByList.forEach((params, index) => {
-      const tabBtn = document.createElement('button');
-      tabBtn.className = 'tab-btn';
-
-    // Кнопка удаления списка
-    const KillBtn = document.createElement('button');
-    
-
-
-      if (index === window.AppState.activeListIndex) {
-        tabBtn.classList.add('active');
-      }
-      
-      const tabLabel = document.createElement('span');
-      tabLabel.textContent = `График ${index + 1}`;
-      
-      const paramCounter = document.createElement('span');
-      paramCounter.className = 'param-counter';
-      paramCounter.textContent = params.length;
-      
-      
-      tabBtn.appendChild(paramCounter);
-      tabBtn.appendChild(tabLabel);
-      KillBtn.className = 'btn btn-xs btn-overlay right';
-    KillBtn.textContent = '🗙';
-    KillBtn.addEventListener('click', () => {
-        this.deleteList(window.AppState.activeListIndex);
-    });
-        tabBtn.appendChild(KillBtn);
-      
-      tabBtn.addEventListener('click', () => {
-        this.switchTab(index);
-      });
-      
-      tabNav.appendChild(tabBtn);
-    });
-    
-    // Кнопка добавления нового таба
-    const addTabBtn = document.createElement('button');
-    addTabBtn.className = 'btn btn-xs btn-secondary';
-    addTabBtn.textContent = '+';
-    addTabBtn.addEventListener('click', () => {
-      this.addNewList();
-    });
-
-    // Кнопка сокрытия/показа tab-content-container
-    const toggleTabContentBtn = document.createElement('button');
-    toggleTabContentBtn.className = 'btn btn-xs btn-secondary end';
-    toggleTabContentBtn.textContent = wasHidden ? '+' : '–';
-    toggleTabContentBtn.addEventListener('click', () => {
-      const tabContentContainer = document.querySelector('.tab-content-container');
-      if (tabContentContainer) {
-        tabContentContainer.classList.toggle('hidden');
-        toggleTabContentBtn.textContent = tabContentContainer.classList.contains('hidden') ? '+' : '–';
-      }
-    });
-
-    // Кнопка показа/скрытия графика
-    const GraphBtn = document.createElement('button');
-    GraphBtn.className = 'btn btn-xs btn-secondary first';
-    GraphBtn.textContent = window.AppState.chartsVisible[window.AppState.activeListIndex] ? '👁' : '👁';
-    GraphBtn.addEventListener('click', () => {
-      const isChartVisible = window.AppState.chartsVisible[window.AppState.activeListIndex];
-      if (isChartVisible) {
-        window.ChartManager.closeChart(window.AppState.activeListIndex);
-      } else {
-        window.ChartManager.showChart(window.AppState.activeListIndex);
-      }
-      // Обновляем текст кнопки после переключения
-      GraphBtn.textContent = window.AppState.chartsVisible[window.AppState.activeListIndex] ? '👁,' : '👁';
-    });
-
-
-    
-    const tabBtnContainer = document.createElement('div');
-    tabBtnContainer.className = 'tab-btn-container end';
-
-    tabNav.appendChild(addTabBtn);
-    tabNav.appendChild(tabBtnContainer);
-    tabNav.appendChild(GraphBtn);
-
-    tabBtnContainer.appendChild(toggleTabContentBtn);
+  // Проверяем существование tab-nav
+  let tabNav = document.querySelector('.tab-nav');
+  if (!tabNav) {
+    tabNav = document.createElement('div');
+    tabNav.className = 'tab-nav';
     tabsContainer.appendChild(tabNav);
-    
-    // Создаем контейнер для содержимого табов
-    const tabContentContainerNew = document.createElement('div');
-    tabContentContainerNew.className = 'tab-content-container';
-    if (wasHidden) {
-      tabContentContainerNew.classList.add('hidden');
+  }
+  
+  // Очищаем существующий tab-nav
+  tabNav.innerHTML = '';
+  
+  // Создаем кнопки табов
+  window.AppState.selectedParamsByList.forEach((params, index) => {
+  const tabBtn = document.createElement('button');
+  tabBtn.className = 'tab-btn';
+
+  // Кнопка удаления списка - ИСПРАВЛЕНО: передаем правильный индекс
+  const KillBtn = document.createElement('button');
+  KillBtn.className = 'btn btn-xs btn-overlay right';
+  KillBtn.textContent = '🗙';
+  KillBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Предотвращаем переключение на таб при клике на кнопку удаления
+    this.deleteList(index); // Удаляем таб с правильным индексом
+  });
+
+  if (index === window.AppState.activeListIndex) {
+    tabBtn.classList.add('active');
+  }
+  
+  const tabLabel = document.createElement('span');
+  tabLabel.textContent = `График ${index + 1}`;
+  
+  const paramCounter = document.createElement('span');
+  paramCounter.className = 'param-counter';
+  paramCounter.textContent = params.length;
+  
+  tabBtn.appendChild(paramCounter);
+  tabBtn.appendChild(tabLabel);
+  tabBtn.appendChild(KillBtn);
+  
+  tabBtn.addEventListener('click', () => {
+    this.switchTab(index);
+  });
+  
+  tabNav.appendChild(tabBtn);
+});
+  
+  // Кнопка добавления нового таба
+  const addTabBtn = document.createElement('button');
+  addTabBtn.className = 'btn btn-xs btn-secondary';
+  addTabBtn.textContent = '+';
+  addTabBtn.addEventListener('click', () => {
+    this.addNewList();
+  });
+
+  // Кнопка сокрытия/показа tab-content-container
+  const toggleTabContentBtn = document.createElement('button');
+  toggleTabContentBtn.className = 'btn btn-xs btn-secondary end';
+  toggleTabContentBtn.textContent = window.AppState.isTabContentHidden ? '+' : '–';
+  toggleTabContentBtn.addEventListener('click', () => {
+    const tabContentContainer = document.querySelector('.tab-content-container');
+    if (tabContentContainer) {
+      tabContentContainer.classList.toggle('hidden');
+      window.AppState.isTabContentHidden = tabContentContainer.classList.contains('hidden');
+      toggleTabContentBtn.textContent = window.AppState.isTabContentHidden ? '+' : '–';
     }
-    
-    // Создаем контент табов
-    window.AppState.selectedParamsByList.forEach((params, index) => {
-      const tabContent = this.createTabContent(params, index);
-      tabContentContainerNew.appendChild(tabContent);
-    });
-    
-    tabsContainer.appendChild(tabContentContainerNew);
-    container.appendChild(tabsContainer);
-  },
+  });
+
+  // Кнопка показа/скрытия графика
+  const GraphBtn = document.createElement('button');
+  GraphBtn.className = 'btn btn-xs btn-secondary first';
+  GraphBtn.textContent = window.AppState.chartsVisible[window.AppState.activeListIndex] ? '📉' : '📉';
+  GraphBtn.addEventListener('click', () => {
+    const isChartVisible = window.AppState.chartsVisible[window.AppState.activeListIndex];
+    if (isChartVisible) {
+      window.ChartManager.closeChart(window.AppState.activeListIndex);
+    } else {
+      window.ChartManager.showChart(window.AppState.activeListIndex);
+    }
+    GraphBtn.textContent = window.AppState.chartsVisible[window.AppState.activeListIndex] ? '📉' : '📉';
+  });
+
+  const tabBtnContainer = document.createElement('div');
+  tabBtnContainer.className = 'tab-btn-container end';
+
+  tabNav.appendChild(addTabBtn);
+  tabNav.appendChild(tabBtnContainer);
+  tabNav.appendChild(GraphBtn);
+
+  tabBtnContainer.appendChild(toggleTabContentBtn);
+  tabsContainer.appendChild(tabNav);
+  
+  // Создаем контейнер для содержимого табов
+  const tabContentContainerNew = document.createElement('div');
+  tabContentContainerNew.className = 'tab-content-container';
+  if (window.AppState.isTabContentHidden) {
+    tabContentContainerNew.classList.add('hidden');
+  }
+  
+  // Создаем контент табов
+  window.AppState.selectedParamsByList.forEach((params, index) => {
+    const tabContent = this.createTabContent(params, index);
+    tabContentContainerNew.appendChild(tabContent);
+  });
+  
+  tabsContainer.appendChild(tabContentContainerNew);
+  container.appendChild(tabsContainer);
+},
 
   createTabContent(params, index) {
     const tabContent = document.createElement('div');
