@@ -482,11 +482,13 @@ body.scrolled .header:focus-within {
     border-bottom: var(--border-width) solid var(--border-color);
     border-right: var(--border-width) solid var(--border-color);
     white-space: nowrap;
+
 }
 
 .table-container th:last-child,
 .table-container td:last-child {
     border-right: none;
+
 }
 
 .table-container th {
@@ -515,9 +517,16 @@ body.scrolled .header:focus-within {
 }
 
 
-.table-container tr:hover td:not(.date-column, .param-column) {
+.table-container tr:hover td,
+.table-container tr:hover td.param-column.aggregate-column.aggregate-cell,
+.table-container tr:hover td.param-column.aggregate-column.aggregate-cell:hover {
     background-color: var(--gray-200);
+    font-weight: 500;
+    color: black;
 }
+
+
+
 
 .table-container th:first-child,
 .table-container td:first-child {
@@ -532,6 +541,46 @@ body.scrolled .header:focus-within {
     background: var(--gray-200);
     z-index: 3;
 }
+
+th.param-column.aggregate-column {
+    position: sticky;
+    left: 235px; /* Смещение от первой колонки параметров */
+    background: var(--gray-200);
+    z-index: 3;
+    border-right: var(--border-width-lg) solid var(--border-color);
+}
+
+/* Ячейки с агрегированными значениями в колонке */
+td.param-column.aggregate-column.aggregate-cell {
+    position: sticky;
+    left: 235px; /* То же смещение что и заголовок */
+    background: var(--gray-100);
+    z-index: 2;
+    border-right: var(--border-width-lg) solid var(--border-color);
+    font-weight: 500;
+}
+
+/* Закрепление строки агрегации в обычном виде (вид 2) */
+/* Ячейка "Итого" в колонке дат */
+td.date-column.aggregate-cell {
+    position: sticky;
+    top: 30px; /* Смещение от заголовка таблицы */
+    background: var(--gray-200);
+    z-index: 3;
+    border-bottom: var(--border-width-lg) solid var(--border-color);
+    font-weight: bold;
+}
+
+/* Ячейки агрегированных значений в строке */
+.aggregate-row td.aggregate-cell:not(.date-column) {
+    position: sticky;
+    top: 30px; /* То же смещение что и ячейка дат */
+    background: var(--gray-200);
+    z-index: 1;
+    border-bottom: var(--border-width-lg) solid var(--border-color);
+    font-weight: bold;
+}
+
 
 .selectedcell {
     background-color: var(--primary-color) !important;
@@ -957,5 +1006,26 @@ div.tab-buttons > button.btn.btn-danger {
   margin-top: 10px;
 }
 
+.aggregate-column {
+  background-color: #f8f9fa;
+  font-weight: bold;
+  border-left: 2px solid #dee2e6;
+}
 
+.aggregate-row {
+  background-color: #f8f9fa;
+  font-weight: bold;
+  border-top: 2px solid #dee2e6;
+}
+
+.aggregate-label {
+  background-color: #e9ecef;
+  font-weight: bold;
+}
+
+.aggregate-value {
+  background-color: #f8f9fa;
+  font-weight: bold;
+  text-align: right;
+}
 

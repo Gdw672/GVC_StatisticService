@@ -21,6 +21,32 @@ const TableManager = {
   }
 },
 
+calculateAggregatedValue(field, filteredData) {
+  const values = filteredData
+    .map(entry => {
+      let value = entry[field];
+      // Если это процент, убираем знак % и делим на 100
+      if (typeof value === 'string' && value.endsWith('%')) {
+        value = parseFloat(value.replace('%', '')) / 100;
+      }
+      return parseFloat(value) || 0;
+    })
+    .filter(v => !isNaN(v));
+
+  if (values.length === 0) return 'N/A';
+
+  // Определяем тип агрегации по названию поля
+  if (field.startsWith('процент_')) {
+    // Для процентов - среднее арифметическое
+    const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
+    return (avg * 100).toFixed(1) + '%';
+  } else {
+    // Для обычных параметров - сумма
+    const sum = values.reduce((sum, val) => sum + val, 0);
+    return sum.toFixed(1);
+  }
+},
+
   setupEventListeners() {
     // Кнопка поворота таблицы
     document.getElementById(this.config.toggleButton).addEventListener('click', () => {
@@ -554,11 +580,13 @@ renderTabs() {
 renderNormalTable(table, formattedData, fields) {
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
-  
+
   const dateHeader = document.createElement("th");
   dateHeader.textContent = "Дата";
   dateHeader.className = "date-column";
   headerRow.appendChild(dateHeader);
+
+  // Удалено: колонка "Итого"
 
   fields.filter(f => f !== "дата_отчета").forEach(field => {
     const th = document.createElement("th");
@@ -570,32 +598,52 @@ renderNormalTable(table, formattedData, fields) {
     th.addEventListener("click", () => this.toggleParam(field));
     headerRow.appendChild(th);
   });
-  
+
   thead.appendChild(headerRow);
   table.appendChild(thead);
 
   const tbody = document.createElement("tbody");
-  
-  // Фильтруем данные, чтобы исключить записи с undefined датами
+
   const validData = formattedData.filter(entry => entry.дата_отчета_raw instanceof Date);
   const selectedData = validData.filter(entry => window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
   const unselectedData = validData.filter(entry => !window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
-  
-  const tableData = [...selectedData.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw), 
-                    ...unselectedData.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw)];
 
-  // Очищаем устаревшие ключи selectedCells
+  const tableData = [...selectedData.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw),
+                     ...unselectedData.sort((a, b) => a.дата_отчета_raw - b.дата_отчета_raw)];
+
   const validKeys = new Set(tableData.flatMap(entry => 
     fields.filter(f => f !== "дата_отчета").map(field => `${entry.дата_отчета_raw.getTime()}-${field}`)
   ));
   window.AppState.selectedCells = new Set([...window.AppState.selectedCells].filter(key => validKeys.has(key)));
 
+  // Строка агрегированных значений
+  const aggregateRow = document.createElement("tr");
+  aggregateRow.classList.add("aggregate-row");
+
+  const aggregateDateCell = document.createElement("td");
+  aggregateDateCell.textContent = "Итого";
+  aggregateDateCell.className = "date-column aggregate-cell";
+  aggregateRow.appendChild(aggregateDateCell);
+
+  // Удалено: пустая ячейка под "Итого"
+
+  fields.filter(f => f !== "дата_отчета").forEach(field => {
+    const aggregateCell = document.createElement("td");
+    const aggregatedValue = this.calculateAggregatedValue(field, tableData);
+    aggregateCell.textContent = aggregatedValue;
+    aggregateCell.className = "aggregate-cell";
+    aggregateRow.appendChild(aggregateCell);
+  });
+
+  tbody.appendChild(aggregateRow);
+
+  // Обычные строки
   tableData.forEach(entry => {
     const row = document.createElement("tr");
     if (entry.дата_отчета_raw instanceof Date && window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime())) {
       row.classList.add("pinned-date");
     }
-    
+
     const dateCell = document.createElement("td");
     dateCell.textContent = entry.дата_отчета || "Нет даты";
     dateCell.className = "date-column";
@@ -614,6 +662,8 @@ renderNormalTable(table, formattedData, fields) {
       }
     });
     row.appendChild(dateCell);
+
+    // Удалено: пустая ячейка "Итого"
 
     fields.filter(f => f !== "дата_отчета").forEach(field => {
       const cell = document.createElement("td");
@@ -640,7 +690,8 @@ renderNormalTable(table, formattedData, fields) {
   });
 
   table.appendChild(tbody);
-},
+}
+,
 
 renderTransposedTable(table, formattedData, fields) {
   const thead = document.createElement("thead");
@@ -650,6 +701,12 @@ renderTransposedTable(table, formattedData, fields) {
   paramHeader.textContent = "Показатель";
   paramHeader.className = "param-column";
   headerRow.appendChild(paramHeader);
+
+  // Добавляем колонку агрегированных значений
+  const aggregateHeader = document.createElement("th");
+  aggregateHeader.textContent = "Итого";
+  aggregateHeader.className = "param-column aggregate-column";
+  headerRow.appendChild(aggregateHeader);
 
   const validData = formattedData.filter(entry => entry.дата_отчета_raw instanceof Date);
   const selectedEntries = validData.filter(entry => window.AppState.selectedDates.has(entry.дата_отчета_raw.getTime()));
@@ -702,6 +759,13 @@ renderTransposedTable(table, formattedData, fields) {
     paramCell.addEventListener("click", () => this.toggleParam(field));
     row.appendChild(paramCell);
 
+    // Добавляем ячейку с агрегированным значением
+    const aggregateCell = document.createElement("td");
+    const aggregatedValue = this.calculateAggregatedValue(field, tableEntries);
+    aggregateCell.textContent = aggregatedValue;
+    aggregateCell.className = "param-column aggregate-column aggregate-cell";
+    row.appendChild(aggregateCell);
+
     tableEntries.forEach((entry, index) => {
       const cell = document.createElement("td");
       cell.textContent = entry[field] || "";
@@ -731,6 +795,7 @@ renderTransposedTable(table, formattedData, fields) {
 
   table.appendChild(tbody);
 },
+
 
   getSortedData(formattedData) {
     const sortedData = [...formattedData];

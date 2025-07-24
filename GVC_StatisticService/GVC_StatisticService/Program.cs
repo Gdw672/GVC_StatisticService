@@ -18,7 +18,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IPythonRunnerService, PythonRunnerService>();
 
 builder.Services.AddDbContext<StatisticDbContext>(options =>
-    options.UseNpgsql("Host=db;Port=5432;Username=postgres;Password=example;Database=statistic"));
+    options.UseNpgsql("Host=localhost;Port=5433;Username=postgres;Password=example;Database=statistic"));
 
 builder.Services.AddScoped<IStatisticDbContext>(provider =>
     provider.GetRequiredService<StatisticDbContext>());

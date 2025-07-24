@@ -542,6 +542,31 @@ function setupExportButtons() {
 
 }
 
+function updateStickyOffsets() {
+  // Ищем первую колонку параметров (для вертикальной таблицы)
+  const paramCol = document.querySelector('th.param-column');
+  const paramWidth = paramCol ? paramCol.offsetWidth : 0;
+
+  // Ищем первую строку заголовка (для горизонтальной таблицы)
+  const headerRow = document.querySelector('thead tr');
+  const headerHeight = headerRow ? headerRow.offsetHeight : 0;
+
+  // Определяем увеличенные смещения для перевёрнутого вида
+  const flippedOffsetLeft = paramWidth + 10; // небольшой запас
+  const flippedOffsetTop = headerHeight + 10;
+
+  // Записываем переменные в :root
+  document.documentElement.style.setProperty('--param-col-width', paramWidth + 'px');
+  document.documentElement.style.setProperty('--header-height', headerHeight + 'px');
+  document.documentElement.style.setProperty('--param-col-width-flipped', flippedOffsetLeft + 'px');
+  document.documentElement.style.setProperty('--header-height-flipped', flippedOffsetTop + 'px');
+}
+
+// Пересчитать при загрузке и при изменении размера
+window.addEventListener('DOMContentLoaded', updateStickyOffsets);
+window.addEventListener('resize', updateStickyOffsets);
+
+
 function setupResetButtons() {
 
 const resetButton = document.getElementById("resetButton");
