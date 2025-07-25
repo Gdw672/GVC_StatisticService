@@ -450,7 +450,7 @@ function setupExportButtons() {
 
       const BOM = "\uFEFF";
       const blob = new Blob([BOM + csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
-      const filename = `${startDate}///${endDate}.csv`;
+      const filename = `${startDate}___${endDate}.csv`;
 
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);

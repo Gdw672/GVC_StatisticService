@@ -14,7 +14,7 @@ const TableManager = {
     'процент_цифровых_сервисов': 'tag-yellow',
     'процент_роботов': 'tag-blue',
     'процент_чат_ботов': 'tag-green',
-    'процент_АС_О': 'tag-purple',
+    'процент_АС_ОЗ': 'tag-purple',
     'процент_не_АС_ОЗ': 'tag-brown',
     'процент_самостоятельности': 'tag-yellow',
 
@@ -58,30 +58,48 @@ const TableManager = {
 
 
 
+calculateAggregatedValue(field, filteredData) {
+  const values = filteredData.map(entry => {
+    let value = entry[field];
 
-
- calculateAggregatedValue(field, filteredData) {
-  const values = filteredData
-    .map(entry => {
-      let value = entry[field];
-
-      // Убираем % и делим на 100, если это строка-процент
-      if (typeof value === 'string' && value.endsWith('%')) {
-        value = parseFloat(value.replace('%', '')) / 100;
+    // Вычисляем derived поля вручную
+    if (value === undefined) {
+      switch (field) {
+        case 'процент_цифровых_сервисов':
+          value = entry['цифровые_сервисы_всего'] / entry['входной_поток_всего'];
+          break;
+        case 'процент_роботов':
+          value = entry['роботы'] / entry['входной_поток_всего'];
+          break;
+        case 'процент_чат_ботов':
+          value = entry['чат_боты'] / entry['входной_поток_всего'];
+          break;
+        case 'процент_АС_ОЗ':
+          value = entry['цифровые_сервисы_АС_ОЗ'] / entry['входной_поток_АС_ОЗ'];
+          break;
+        case 'процент_не_АС_ОЗ':
+          value = entry['цифровые_сервисы_не_АС_ОЗ'] / entry['входной_поток_не_АС_ОЗ'];
+          break;
+        case 'процент_самостоятельности':
+          value = entry['самостоятельность'] / entry['цифровые_сервисы_всего'];
+          break;
       }
+    }
 
-      return parseFloat(value) || 0;
-    })
-    .filter(v => !isNaN(v));
+    // Убираем % и делим на 100, если это строка-процент
+    if (typeof value === 'string' && value.endsWith('%')) {
+      value = parseFloat(value.replace('%', '')) / 100;
+    }
+
+    return parseFloat(value) || 0;
+  }).filter(v => !isNaN(v));
 
   if (values.length === 0) return 'N/A';
 
-  // Если это поле-процент — считаем среднее арифметическое и возвращаем с %
   if (field.startsWith('процент_')) {
     const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
     return (avg * 100).toFixed(1) + '%';
   } else {
-    // Для остальных — просто сумма
     const sum = values.reduce((sum, val) => sum + val, 0);
     return sum.toFixed(1);
   }
