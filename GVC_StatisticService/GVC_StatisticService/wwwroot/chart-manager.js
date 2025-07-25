@@ -1,6 +1,7 @@
 const ChartManager = {
   config: null,
   plotlyLoaded: false,
+  chartSettings: {}, // Настройки для каждого графика
 
   init(config) {
     this.config = config;
@@ -12,14 +13,24 @@ const ChartManager = {
     window.AppState.chartsVisible = window.AppState.chartsVisible || [];
   },
 
+  initChartSettings(chartIndex) {
+    if (!this.chartSettings[chartIndex]) {
+      this.chartSettings[chartIndex] = {
+        showMarkers: true,
+        showValues: false,
+        smoothing: 0.3,
+        colors: {}
+      };
+    }
+  },
+
   showChart(listIndex) {
-
     if (ChartManager.config !== null) {
-
-
-} else {
-  console.warn("ChartManager ещё не инициализирован");
-}
+      // Инициализируем настройки для этого графика
+      this.initChartSettings(listIndex);
+    } else {
+      console.warn("ChartManager ещё не инициализирован");
+    }
 
     while (window.AppState.chartsVisible.length <= listIndex) {
       window.AppState.chartsVisible.push(false);
@@ -31,7 +42,7 @@ const ChartManager = {
   },
 
   renderChart(chartIndex, attempts = 0) {
-    const maxAttempts = 50; // 5 секунд максимум
+    const maxAttempts = 50;
 
     if (typeof Plotly === 'undefined') {
       if (attempts >= maxAttempts) {
@@ -45,14 +56,12 @@ const ChartManager = {
       return;
     }
 
-    // Проверяем наличие необходимых данных в window.AppState
     if (!window.AppState || !window.AppState.selectedParamsByList) {
       console.error('AppState или selectedParamsByList не инициализированы');
       this.handleEmptySelection(chartIndex, 'Ошибка инициализации данных');
       return;
     }
 
-    // Проверяем наличие TableManager
     if (!window.TableManager) {
       console.error('TableManager не найден');
       this.handleEmptySelection(chartIndex, 'Ошибка доступа к данным');
@@ -152,17 +161,11 @@ const ChartManager = {
 
   createChartContainer(chartIndex) {
     console.log("ChartManager.config:", this.config);
-  if (!this.config || !this.config.chartsContainer) {
-    console.error('Конфигурация ChartManager не инициализирована или отсутствует chartsContainer');
-    return false;
-  }
-    // Проверяем наличие конфигурации
     if (!this.config || !this.config.chartsContainer) {
       console.error('Конфигурация ChartManager не инициализирована или отсутствует chartsContainer');
       return false;
     }
 
-    // Проверяем наличие контейнера для графиков
     const chartsContainer = document.getElementById(this.config.chartsContainer);
     if (!chartsContainer) {
       console.error(`Charts container '${this.config.chartsContainer}' не найден`);
@@ -171,7 +174,6 @@ const ChartManager = {
 
     const chartId = `chart_${chartIndex}`;
     
-    // Проверяем, не существует ли уже такой контейнер
     let chartContainer = document.getElementById(chartId);
     if (chartContainer) {
       console.log(`Контейнер графика ${chartId} уже существует`);
@@ -217,13 +219,17 @@ const ChartManager = {
       header.className = 'chartHeader';
       header.style.cssText = `
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
         align-items: center;
         margin-bottom: 16px;
         padding-bottom: 12px;
         border-bottom: 2px solid #e2e8f0;
       `;
       
+      // Контейнер настроек
+      const settingsContainer = this.createSettingsContainer(chartIndex);
+      
+      // Кнопка закрытия
       const closeButton = document.createElement('button');
       closeButton.className = 'closeChartButton';
       closeButton.innerHTML = '✕';
@@ -256,11 +262,271 @@ const ChartManager = {
       
       closeButton.addEventListener('click', () => this.closeChart(chartIndex));
       
+      header.appendChild(settingsContainer);
       header.appendChild(closeButton);
       return header;
     } catch (error) {
       console.error('Ошибка создания заголовка графика:', error);
       return null;
+    }
+  },
+
+  createSettingsContainer(chartIndex) {
+    const container = document.createElement('div');
+    container.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 12px;
+      color: #4a5568;
+    `;
+
+    // Настройка точек
+    const markersToggle = this.createTextButton('Точки', () => {
+      this.chartSettings[chartIndex].showMarkers = !this.chartSettings[chartIndex].showMarkers;
+      this.updateChart(chartIndex);
+      this.updateButtonState(markersToggle, this.chartSettings[chartIndex].showMarkers);
+    });
+    this.updateButtonState(markersToggle, this.chartSettings[chartIndex].showMarkers);
+    
+    // Настройка значений
+    const valuesToggle = this.createTextButton('Значения', () => {
+      this.chartSettings[chartIndex].showValues = !this.chartSettings[chartIndex].showValues;
+      this.updateChart(chartIndex);
+      this.updateButtonState(valuesToggle, this.chartSettings[chartIndex].showValues);
+    });
+    this.updateButtonState(valuesToggle, this.chartSettings[chartIndex].showValues);
+
+    // Настройка сглаживания
+    const smoothingContainer = this.createSmoothingControl(chartIndex);
+
+    // Настройка цветов
+    const colorsButton = this.createTextButton('Цвета', () => {
+      this.showColorPicker(chartIndex);
+    });
+
+    container.appendChild(markersToggle);
+    container.appendChild(valuesToggle);
+    container.appendChild(smoothingContainer);
+    container.appendChild(colorsButton);
+
+    return container;
+  },
+
+  createTextButton(text, onClick) {
+    const button = document.createElement('span');
+    button.textContent = text;
+    button.style.cssText = `
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      user-select: none;
+    `;
+    button.addEventListener('click', onClick);
+    return button;
+  },
+
+  updateButtonState(button, isActive) {
+    if (isActive) {
+      button.style.background = '#e6fffa';
+      button.style.color = '#00b894';
+      button.style.fontWeight = 'bold';
+    } else {
+      button.style.background = '#f7fafc';
+      button.style.color = '#718096';
+      button.style.fontWeight = 'normal';
+    }
+  },
+
+  createSmoothingControl(chartIndex) {
+    const container = document.createElement('div');
+    container.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    `;
+
+    const leftArrow = document.createElement('span');
+    leftArrow.textContent = '◀';
+    leftArrow.style.cssText = `
+      cursor: pointer;
+      font-size: 10px;
+      color: #718096;
+      transition: color 0.2s ease;
+    `;
+    leftArrow.addEventListener('click', () => {
+      this.chartSettings[chartIndex].smoothing = Math.max(0, this.chartSettings[chartIndex].smoothing - 0.1);
+      this.updateChart(chartIndex);
+      smoothingText.textContent = `Сглаж: ${Math.round(this.chartSettings[chartIndex].smoothing * 10)}`;
+    });
+
+    const smoothingText = document.createElement('span');
+    smoothingText.textContent = `Сглаж: ${Math.round(this.chartSettings[chartIndex].smoothing * 10)}`;
+    smoothingText.style.cssText = `
+      font-size: 11px;
+      color: #4a5568;
+      min-width: 55px;
+      text-align: center;
+    `;
+
+    const rightArrow = document.createElement('span');
+    rightArrow.textContent = '▶';
+    rightArrow.style.cssText = `
+      cursor: pointer;
+      font-size: 10px;
+      color: #718096;
+      transition: color 0.2s ease;
+    `;
+    rightArrow.addEventListener('click', () => {
+      this.chartSettings[chartIndex].smoothing = Math.min(1, this.chartSettings[chartIndex].smoothing + 0.1);
+      this.updateChart(chartIndex);
+      smoothingText.textContent = `Сглаж: ${Math.round(this.chartSettings[chartIndex].smoothing * 10)}`;
+    });
+
+    [leftArrow, rightArrow].forEach(arrow => {
+      arrow.addEventListener('mouseover', () => arrow.style.color = '#2d3748');
+      arrow.addEventListener('mouseout', () => arrow.style.color = '#718096');
+    });
+
+    container.appendChild(leftArrow);
+    container.appendChild(smoothingText);
+    container.appendChild(rightArrow);
+
+    return container;
+  },
+
+  showColorPicker(chartIndex) {
+    const selectedParams = window.AppState.selectedParamsByList[chartIndex];
+    if (!selectedParams) return;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    `;
+
+    const content = document.createElement('div');
+    content.style.cssText = `
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 400px;
+      max-height: 70vh;
+      overflow-y: auto;
+    `;
+
+    const title = document.createElement('h3');
+    title.textContent = 'Выбор цветов параметров';
+    title.style.cssText = `
+      margin: 0 0 15px 0;
+      color: #2d3748;
+      font-size: 16px;
+    `;
+
+    const colors = [
+      '#667eea', '#764ba2', '#f093fb', '#f5576c',
+      '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+      '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
+    ];
+
+    content.appendChild(title);
+
+    selectedParams.forEach(param => {
+      const paramContainer = document.createElement('div');
+      paramContainer.style.cssText = `
+        margin-bottom: 15px;
+        padding: 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+      `;
+
+      const paramTitle = document.createElement('div');
+      paramTitle.textContent = param;
+      paramTitle.style.cssText = `
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #2d3748;
+        font-size: 13px;
+      `;
+
+      const colorContainer = document.createElement('div');
+      colorContainer.style.cssText = `
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      `;
+
+      colors.forEach(color => {
+        const colorButton = document.createElement('div');
+        colorButton.style.cssText = `
+          width: 24px;
+          height: 24px;
+          background: ${color};
+          border-radius: 4px;
+          cursor: pointer;
+          border: 2px solid ${this.chartSettings[chartIndex].colors[param] === color ? '#000' : 'transparent'};
+        `;
+
+        colorButton.addEventListener('click', () => {
+          this.chartSettings[chartIndex].colors[param] = color;
+          // Обновляем границы всех кнопок цветов для этого параметра
+          colorContainer.querySelectorAll('div').forEach(btn => {
+            btn.style.border = '2px solid transparent';
+          });
+          colorButton.style.border = '2px solid #000';
+          this.updateChart(chartIndex);
+        });
+
+        colorContainer.appendChild(colorButton);
+      });
+
+      paramContainer.appendChild(paramTitle);
+      paramContainer.appendChild(colorContainer);
+      content.appendChild(paramContainer);
+    });
+
+    const closeButton = document.createElement('button');
+    closeButton.textContent = 'Закрыть';
+    closeButton.style.cssText = `
+      background: #4299e1;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 15px;
+      width: 100%;
+    `;
+    closeButton.addEventListener('click', () => document.body.removeChild(modal));
+
+    content.appendChild(closeButton);
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+      }
+    });
+  },
+
+  updateChart(chartIndex) {
+    const selectedParams = window.AppState.selectedParamsByList[chartIndex];
+    const selectedDates = window.TableManager.getSelectedDatesForChart(chartIndex);
+    const rawData = window.TableManager.getRawData();
+
+    if (selectedParams && selectedDates && rawData) {
+      const chartData = this.prepareChartData(rawData, selectedParams, selectedDates);
+      this.createPlotlyChart(chartIndex, chartData);
     }
   },
 
@@ -283,14 +549,12 @@ const ChartManager = {
   createPlotlyChart(chartIndex, chartData) {
     const plotId = `plot_${chartIndex}`;
     
-    // Проверяем наличие элемента для графика
     const plotElement = document.getElementById(plotId);
     if (!plotElement) {
       console.error(`Элемент для графика '${plotId}' не найден`);
       return;
     }
 
-    // Проверяем наличие данных
     if (!chartData || chartData.length === 0) {
       console.error('Нет данных для построения графика');
       plotElement.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">Нет данных для отображения</div>';
@@ -298,20 +562,13 @@ const ChartManager = {
     }
 
     try {
-      const traces = this.prepareTraces(chartData);
+      const traces = this.prepareTraces(chartData, chartIndex);
       const layout = this.prepareLayout(chartIndex, chartData);
       const config = {
         displayModeBar: true,
-        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'autoScale2d'],
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'autoScale2d', 'zoom2d', 'toImage'],
         responsive: true,
-        displaylogo: false,
-        toImageButtonOptions: {
-          format: 'png',
-          filename: `график_${chartIndex + 1}`,
-          height: 800,
-          width: 1200,
-          scale: 2
-        }
+        displaylogo: false
       };
       
       Plotly.newPlot(plotId, traces, layout, config);
@@ -321,12 +578,12 @@ const ChartManager = {
     }
   },
 
-  prepareTraces(chartData) {
+  prepareTraces(chartData, chartIndex) {
     try {
       const percentageData = chartData.filter(item => item && item.type === 'percentage');
       const absoluteData = chartData.filter(item => item && item.type === 'absolute');
       
-      const colors = [
+      const defaultColors = [
         '#667eea', '#764ba2', '#f093fb', '#f5576c',
         '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
         '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
@@ -337,13 +594,15 @@ const ChartManager = {
       
       percentageData.forEach(item => {
         if (item && item.dates && item.values) {
-          traces.push(this.createTrace(item, colors[colorIndex++ % colors.length], 'y'));
+          const color = this.chartSettings[chartIndex].colors[item.parameter] || defaultColors[colorIndex++ % defaultColors.length];
+          traces.push(this.createTrace(item, color, 'y', chartIndex));
         }
       });
       
       absoluteData.forEach(item => {
         if (item && item.dates && item.values) {
-          traces.push(this.createTrace(item, colors[colorIndex++ % colors.length], 'y2'));
+          const color = this.chartSettings[chartIndex].colors[item.parameter] || defaultColors[colorIndex++ % defaultColors.length];
+          traces.push(this.createTrace(item, color, 'y2', chartIndex));
         }
       });
       
@@ -354,25 +613,22 @@ const ChartManager = {
     }
   },
 
-  createTrace(item, color, yaxis) {
+  createTrace(item, color, yaxis, chartIndex) {
     try {
-      return {
+      const settings = this.chartSettings[chartIndex];
+      const mode = settings.showMarkers ? 'lines+markers' : 'lines';
+      
+      const trace = {
         x: item.dates || [],
         y: item.values || [],
         type: 'scatter',
-        mode: 'lines+markers',
+        mode: mode,
         name: item.parameter || 'Неизвестный параметр',
         line: { 
           color: color, 
           width: 3,
           shape: 'spline',
-          smoothing: 0.3
-        },
-        marker: { 
-          size: 8, 
-          symbol: 'circle', 
-          line: { width: 2, color: '#fff' },
-          color: color
+          smoothing: settings.smoothing
         },
         yaxis,
         hovertemplate: '<b>%{fullData.name}</b><br>' +
@@ -385,6 +641,28 @@ const ChartManager = {
           font: { color: '#2d3748', size: 12 }
         }
       };
+
+      if (settings.showMarkers) {
+        trace.marker = { 
+          size: 8, 
+          symbol: 'circle', 
+          line: { width: 2, color: '#fff' },
+          color: color
+        };
+      }
+
+      // Добавляем текстовые значения если включено
+      if (settings.showValues) {
+        trace.mode = settings.showMarkers ? 'lines+markers+text' : 'lines+text';
+        trace.text = item.values.map(v => Math.round(v * 100) / 100);
+        trace.textposition = 'top center';
+        trace.textfont = {
+          size: 10,
+          color: color
+        };
+      }
+
+      return trace;
     } catch (error) {
       console.error('Ошибка создания трассировки:', error);
       return {};
@@ -489,7 +767,9 @@ const ChartManager = {
         }, 300);
       }
       
-      // Безопасное обновление состояния
+      // Удаляем настройки графика
+      delete this.chartSettings[chartIndex];
+      
       if (window.AppState && Array.isArray(window.AppState.chartsVisible)) {
         while (window.AppState.chartsVisible.length <= chartIndex) {
           window.AppState.chartsVisible.push(false);
@@ -497,7 +777,6 @@ const ChartManager = {
         window.AppState.chartsVisible[chartIndex] = false;
       }
       
-      // Безопасный вызов renderLists
       if (window.TableManager && typeof window.TableManager.renderLists === 'function') {
         window.TableManager.renderLists();
       }
