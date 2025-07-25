@@ -1,6 +1,26 @@
 const TableManager = {
   config: null,
 
+  paramToTagClass: {
+    'входной_поток_всего': 'tag-blue',
+    'цифровые_сервисы_всего': 'tag-green',
+    'роботы': 'tag-purple',
+    'чат_боты': 'tag-brown',
+    'входной_поток_АС_ОЗ': 'tag-yellow',
+    'цифровые_сервисы_АС_ОЗ': 'tag-blue',
+    'входной_поток_не_АС_ОЗ': 'tag-green', 
+    'цифровые_сервисы_не_АС_ОЗ': 'tag-purple',
+    'самостоятельность': 'tag-brown',
+    'процент_цифровых_сервисов': 'tag-yellow',
+    'процент_роботов': 'tag-blue',
+    'процент_чат_ботов': 'tag-green',
+    'процент_АС_О': 'tag-purple',
+    'процент_не_АС_ОЗ': 'tag-brown',
+    'процент_самостоятельности': 'tag-yellow',
+
+    'default': 'tag-blue'
+  },
+
   init(config) {
   this.config = config;
   this.setupEventListeners();
@@ -20,6 +40,9 @@ const TableManager = {
     window.AppState.selectedDates = new Set();
   }
 },
+
+
+
 
 calculateAggregatedValue(field, filteredData) {
   const values = filteredData
@@ -214,30 +237,30 @@ addNewList() {
     }
   },
 
-  updateDateRangeInfo(listIndex, startDate, endDate) {
-    const infoElement = document.querySelector(`#tab-content-${listIndex} .date-range-info`);
-    if (!infoElement) return;
+ updateDateRangeInfo(listIndex, startDate, endDate) {
+  const infoElement = document.querySelector(`#tab-content-${listIndex} .date-range-info`);
+  if (!infoElement) return;
+  
+  if (startDate && endDate) {
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
     
-    if (startDate && endDate) {
-      const startDateObj = new Date(startDate);
-      const endDateObj = new Date(endDate);
-      
-      if (startDateObj <= endDateObj) {
-        const diffTime = Math.abs(endDateObj - startDateObj);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-        infoElement.textContent = `Выбран диапазон: ${diffDays} ${this.getDayWord(diffDays)}`;
-        infoElement.classList.remove('error');
-        infoElement.classList.add('success');
-      } else {
-        infoElement.textContent = 'Некорректный диапазон дат';
-        infoElement.classList.remove('success');
-        infoElement.classList.add('error');
-      }
+    if (startDateObj <= endDateObj) {
+      const diffTime = Math.abs(endDateObj - startDateObj);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      infoElement.textContent = `Выбран диапазон: ${diffDays} ${this.getDayWord(diffDays)}`;
+      infoElement.classList.remove('error');
+      infoElement.classList.add('success');
     } else {
-      infoElement.textContent = 'Выберите диапазон дат';
-      infoElement.classList.remove('success', 'error');
+      infoElement.textContent = 'Некорректный диапазон дат';
+      infoElement.classList.remove('success');
+      infoElement.classList.add('error');
     }
-  },
+  } else {
+    infoElement.textContent = 'Выберите диапазон дат';
+    infoElement.classList.remove('success', 'error');
+  }
+},
 
   getDayWord(days) {
     if (days === 1) return 'день';
@@ -407,104 +430,148 @@ renderTabs() {
   container.appendChild(tabsContainer);
 },
 
-  createTabContent(params, index) {
-    const tabContent = document.createElement('div');
-    tabContent.className = 'tab-content';
-    tabContent.id = `tab-content-${index}`;
-    
-    if (index !== window.AppState.activeListIndex) {
-      tabContent.style.display = 'none';
-    }
-    
-    // Контейнер для тегов
-    const tagsContainer = document.createElement('div');
-    tagsContainer.className = 'tags-container';
-    
-    if (params.length === 0) {
-      const emptyMessage = document.createElement('div');
-      emptyMessage.className = 'empty-message';
-      emptyMessage.textContent = 'Ничего не выбрано';
-      tagsContainer.appendChild(emptyMessage);
-    } else {
-      params.forEach(param => {
-        const tag = document.createElement('span');
-        tag.className = 'tag';
-        tag.textContent = param;
-        tag.addEventListener('click', () => {
-          this.toggleParam(param);
-        });
-        tagsContainer.appendChild(tag);
+ createTabContent(params, index) {
+  const tabContent = document.createElement('div');
+  tabContent.className = 'tab-content';
+  tabContent.id = `tab-content-${index}`;
+  
+  if (index !== window.AppState.activeListIndex) {
+    tabContent.style.display = 'none';
+  }
+  
+  // Контейнер для тегов
+  const tagsContainer = document.createElement('div');
+  tagsContainer.className = 'tags-container';
+  
+  if (params.length === 0) {
+    const emptyMessage = document.createElement('div');
+    emptyMessage.className = 'empty-message';
+    emptyMessage.textContent = 'Ничего не выбрано';
+    tagsContainer.appendChild(emptyMessage);
+  } else {
+    params.forEach(param => {
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      
+      // Получаем цветовой класс для параметра
+      const colorClass = this.paramToTagClass[param] || this.paramToTagClass['default'];
+      tag.classList.add(colorClass);
+      
+      tag.textContent = param;
+      tag.addEventListener('click', () => {
+        this.toggleParam(param);
       });
-    }
-    
-    // Контейнер для выбора дат
-    const dateFilters = this.createDateFilters(index);
-    
-    tabContent.appendChild(tagsContainer);
-    tabContent.appendChild(dateFilters);
-    
-    return tabContent;
-  },
+      tagsContainer.appendChild(tag);
+    });
+  }
+  
+  // Контейнер для выбора дат
+  const dateFilters = this.createDateFilters(index);
+  
+  tabContent.appendChild(tagsContainer);
+  tabContent.appendChild(dateFilters);
+  
+  return tabContent;
+},
 
-  createDateFilters(index) {
-    const dateFilters = document.createElement('div');
-    dateFilters.className = 'listDateFilters';
-    
-    const dateRange = window.AppState.dateRangesByList[index];
-    
-    const startFilterDiv = document.createElement('div');
-    startFilterDiv.className = 'date-filter-small';
-    
-    const startLabel = document.createElement('label');
-    startLabel.setAttribute('for', `tab-start-${index}`);
-    startLabel.textContent = 'От:';
-    
-    const startInput = document.createElement('input');
-    startInput.type = 'date';
-    startInput.id = `tab-start-${index}`;
-    startInput.className = 'form-input';
-    startInput.value = dateRange.startDate || '2025-07-01';
-    
-    startFilterDiv.appendChild(startLabel);
-    startFilterDiv.appendChild(startInput);
-    
-    const endFilterDiv = document.createElement('div');
-    endFilterDiv.className = 'date-filter-small';
-    
-    const endLabel = document.createElement('label');
-    endLabel.setAttribute('for', `tab-end-${index}`);
-    endLabel.textContent = 'До:';
-    
-    const endInput = document.createElement('input');
-    endInput.type = 'date';
-    endInput.id = `tab-end-${index}`;
-    endInput.className = 'form-input';
-    endInput.value = dateRange.endDate || '2025-07-31';
-    
-    endFilterDiv.appendChild(endLabel);
-    endFilterDiv.appendChild(endInput);
-    
-    const infoDiv = document.createElement('div');
-    infoDiv.className = 'date-range-info';
-    infoDiv.textContent = 'Выберите диапазон дат';
-    
-    dateFilters.appendChild(startFilterDiv);
-    dateFilters.appendChild(endFilterDiv);
-    dateFilters.appendChild(infoDiv);
-    
-    // Обработчики событий
-    startInput.addEventListener('change', (e) => {
+ createDateFilters(index) {
+  const dateFilters = document.createElement('div');
+  dateFilters.className = 'listDateFilters';
+  
+  const dateRange = window.AppState.dateRangesByList[index];
+  
+  const startFilterDiv = document.createElement('div');
+  startFilterDiv.className = 'date-filter-small';
+  
+  const startLabel = document.createElement('label');
+  startLabel.setAttribute('for', `tab-start-${index}`);
+  startLabel.textContent = 'От:';
+  
+  const startInput = document.createElement('input');
+  startInput.type = 'date';
+  startInput.id = `tab-start-${index}`;
+  startInput.className = 'form-input';
+  startInput.value = dateRange.startDate || '2025-07-01';
+  
+  startFilterDiv.appendChild(startLabel);
+  startFilterDiv.appendChild(startInput);
+  
+  const endFilterDiv = document.createElement('div');
+  endFilterDiv.className = 'date-filter-small';
+  
+  const endLabel = document.createElement('label');
+  endLabel.setAttribute('for', `tab-end-${index}`);
+  endLabel.textContent = 'До:';
+  
+  const endInput = document.createElement('input');
+  endInput.type = 'date';
+  endInput.id = `tab-end-${index}`;
+  endInput.className = 'form-input';
+  endInput.value = dateRange.endDate || '2025-07-31';
+  
+  endFilterDiv.appendChild(endLabel);
+  endFilterDiv.appendChild(endInput);
+  
+  const infoDiv = document.createElement('div');
+  infoDiv.className = 'date-range-info';
+  infoDiv.textContent = 'Выберите диапазон дат';
+  
+  dateFilters.appendChild(startFilterDiv);
+  dateFilters.appendChild(endFilterDiv);
+  dateFilters.appendChild(infoDiv);
+  
+  // Обработчики событий
+  const handleStartChange = (e) => {
+    this.validateDateRange(startInput, endInput);
+    this.updateDateRange(index, e.target.value, endInput.value);
+  };
+  
+  const handleEndChange = (e) => {
+    this.validateDateRange(startInput, endInput);
+    this.updateDateRange(index, startInput.value, e.target.value);
+  };
+  
+  startInput.addEventListener('change', handleStartChange);
+  endInput.addEventListener('change', handleEndChange);
+  
+  // Программно вызываем обработчики для инициализации состояния с дефолтными значениями
+  setTimeout(() => {
+    // Если в dateRange уже есть значения, используем их
+    if (dateRange.startDate || dateRange.endDate) {
       this.validateDateRange(startInput, endInput);
-      this.updateDateRange(index, e.target.value, endInput.value);
-    });
-    
-    endInput.addEventListener('change', (e) => {
+      this.updateDateRange(index, startInput.value, endInput.value);
+    } else {
+      // Иначе устанавливаем дефолтные значения и вызываем обработчики
+      const defaultStartDate = '2025-07-01';
+      const defaultEndDate = '2025-07-31';
+      
+      startInput.value = defaultStartDate;
+      endInput.value = defaultEndDate;
+      
       this.validateDateRange(startInput, endInput);
-      this.updateDateRange(index, startInput.value, e.target.value);
-    });
-    
-    return dateFilters;
-  },
+      this.updateDateRange(index, defaultStartDate, defaultEndDate);
+    }
+  }, 0);
+  
+  return dateFilters;
+},
+
+updateDateRange(listIndex, startDate, endDate) {
+  // Убеждаемся, что массив dateRangesByList достаточно большой
+  while (window.AppState.dateRangesByList.length <= listIndex) {
+    window.AppState.dateRangesByList.push({ startDate: '', endDate: '' });
+  }
+  
+  window.AppState.dateRangesByList[listIndex] = { startDate, endDate };
+  
+  // Обновляем информацию о диапазоне
+  this.updateDateRangeInfo(listIndex, startDate, endDate);
+  
+  // Если это активный список, обновляем отображение
+  if (listIndex === window.AppState.activeListIndex) {
+    this.render();
+  }
+},
 
   switchTab(index) {
     window.AppState.activeListIndex = index;

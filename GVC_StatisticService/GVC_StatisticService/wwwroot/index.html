@@ -20,7 +20,7 @@
         <div class="authsect">
           <input id="login" class="form-input hidden" type="text" placeholder="GVC\ФамилияИО" required>
           <input id="password" class="form-input hidden" type="password" placeholder="Пароль" maxlength="30" minlength="14" required>
-          <button id="savepasswordButton" class="btn btn-xs btn-secondary btn-password hidden">!</button>
+          <button id="savepasswordButton" class="btn btn-xs btn-secondary btn-password hidden">»</button>
           <button id="passwordButton" class="btn btn-xs btn-secondary btn-password">⛭</button>
         </div>
       </div>
@@ -572,7 +572,6 @@ function setupResetButtons() {
 const resetButton = document.getElementById("resetButton");
 
   resetButton.addEventListener("click", () => {
-    alert("Нажалось!");
   const sliderV = document.getElementById('mySliderV');
     const sliderH = document.getElementById('mySliderH');
     sliderV.value = 50;
