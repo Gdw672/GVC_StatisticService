@@ -295,7 +295,6 @@ body.scrolled .header:focus-within {
     border-radius: var(--border-radius-xl);
     padding: var(--space-2xl);
     margin-bottom: var(--space-3xl);
-    box-shadow: var(--shadow-sm);
     animation: fadeIn 0.5s ease-out;
 }
 
@@ -971,8 +970,16 @@ div.tab-buttons > button.btn.btn-danger {
     width: 150px;
 }
 
-#rangeData{
+#rangeData,
+#checkrangeData{
     width:15%;
+}
+
+.plotly .textpoint text {
+  paint-order: stroke;
+  stroke: white;
+  stroke-width: 2px;
+  stroke-linejoin: round;
 }
 
 
@@ -1029,3 +1036,23 @@ div.tab-buttons > button.btn.btn-danger {
   text-align: right;
 }
 
+
+.tab-content-flex {
+  display: flex;
+  align-items: flex-start; /* Align items at the top */
+  gap: var(--space-lg); /* Space between date filters and tags */
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+
+.listDateFilters {
+  flex: 0 0 auto; /* Prevent date filters from growing */
+  width: 20%; /* Maintain existing width */
+  min-width: 200px; /* Ensure a minimum width for readability */
+}
+
+.tags-container {
+  flex: 1; /* Allow tags container to take remaining space */
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}

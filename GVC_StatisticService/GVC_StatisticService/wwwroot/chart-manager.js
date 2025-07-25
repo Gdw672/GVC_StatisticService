@@ -179,7 +179,7 @@ const ChartManager = {
   });
   boldToggle.style.fontSize = '10px';
   boldToggle.style.fontWeight = 'bold';
-  boldToggle.style.minWidth = '20px';
+  boldToggle.style.minWidth = '25px';
   this.updateButtonState(boldToggle, this.chartSettings[chartIndex].textBold);
 
   sizeContainer.appendChild(sizeLeftArrow);

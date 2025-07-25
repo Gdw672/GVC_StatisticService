@@ -466,15 +466,19 @@ renderTabs() {
   const tabContent = document.createElement('div');
   tabContent.className = 'tab-content';
   tabContent.id = `tab-content-${index}`;
-  
+
   if (index !== window.AppState.activeListIndex) {
     tabContent.style.display = 'none';
   }
-  
+
+  // Create a flex container for tags and date filters
+  const flexContainer = document.createElement('div');
+  flexContainer.className = 'tab-content-flex';
+
   // Контейнер для тегов
   const tagsContainer = document.createElement('div');
   tagsContainer.className = 'tags-container';
-  
+
   if (params.length === 0) {
     const emptyMessage = document.createElement('div');
     emptyMessage.className = 'empty-message';
@@ -484,11 +488,11 @@ renderTabs() {
     params.forEach(param => {
       const tag = document.createElement('span');
       tag.className = 'tag';
-      
+
       // Получаем цветовой класс для параметра
       const colorClass = this.paramToTagClass[param] || this.paramToTagClass['default'];
       tag.classList.add(colorClass);
-      
+
       tag.textContent = param;
       tag.addEventListener('click', () => {
         this.toggleParam(param);
@@ -496,13 +500,16 @@ renderTabs() {
       tagsContainer.appendChild(tag);
     });
   }
-  
+
   // Контейнер для выбора дат
   const dateFilters = this.createDateFilters(index);
-  
-  tabContent.appendChild(tagsContainer);
-  tabContent.appendChild(dateFilters);
-  
+
+  // Append both to flex container
+  flexContainer.appendChild(dateFilters);
+  flexContainer.appendChild(tagsContainer);
+
+  tabContent.appendChild(flexContainer);
+
   return tabContent;
 },
 
