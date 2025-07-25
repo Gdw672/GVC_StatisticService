@@ -14,15 +14,18 @@ const ChartManager = {
   },
 
   initChartSettings(chartIndex) {
-    if (!this.chartSettings[chartIndex]) {
-      this.chartSettings[chartIndex] = {
-        showMarkers: true,
-        showValues: false,
-        smoothing: 0.3,
-        colors: {}
-      };
-    }
-  },
+  if (!this.chartSettings[chartIndex]) {
+    this.chartSettings[chartIndex] = {
+      showMarkers: true,
+      showValues: false,
+      smoothing: 0.5, // Увеличили начальное значение
+      showGrid: true, // Новая настройка
+      textSize: 10,   // Новая настройка
+      textBold: true, // Новая настройка
+      colors: {}
+    };
+  }
+},
 
   showChart(listIndex) {
     if (ChartManager.config !== null) {
@@ -108,6 +111,88 @@ const ChartManager = {
     }
   },
 
+  createTextControl(chartIndex) {
+  const container = document.createElement('div');
+  container.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  `;
+
+  // Размер текста
+  const sizeContainer = document.createElement('div');
+  sizeContainer.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  `;
+
+  const sizeLeftArrow = document.createElement('span');
+  sizeLeftArrow.textContent = '◀';
+  sizeLeftArrow.style.cssText = `
+    cursor: pointer;
+    font-size: 8px;
+    color: #718096;
+    transition: color 0.2s ease;
+  `;
+
+  const sizeText = document.createElement('span');
+  sizeText.textContent = `T:${this.chartSettings[chartIndex].textSize}`;
+  sizeText.style.cssText = `
+    font-size: 10px;
+    color: #4a5568;
+    min-width: 25px;
+    text-align: center;
+  `;
+
+  const sizeRightArrow = document.createElement('span');
+  sizeRightArrow.textContent = '▶';
+  sizeRightArrow.style.cssText = `
+    cursor: pointer;
+    font-size: 8px;
+    color: #718096;
+    transition: color 0.2s ease;
+  `;
+
+  sizeLeftArrow.addEventListener('click', () => {
+    this.chartSettings[chartIndex].textSize = Math.max(8, this.chartSettings[chartIndex].textSize - 1);
+    this.updateChart(chartIndex);
+    sizeText.textContent = `T:${this.chartSettings[chartIndex].textSize}`;
+  });
+
+  sizeRightArrow.addEventListener('click', () => {
+    this.chartSettings[chartIndex].textSize = Math.min(16, this.chartSettings[chartIndex].textSize + 1);
+    this.updateChart(chartIndex);
+    sizeText.textContent = `T:${this.chartSettings[chartIndex].textSize}`;
+  });
+
+  [sizeLeftArrow, sizeRightArrow].forEach(arrow => {
+    arrow.addEventListener('mouseover', () => arrow.style.color = '#2d3748');
+    arrow.addEventListener('mouseout', () => arrow.style.color = '#718096');
+  });
+
+  // Жирность текста
+  const boldToggle = this.createTextButton('Ж', () => {
+    this.chartSettings[chartIndex].textBold = !this.chartSettings[chartIndex].textBold;
+    this.updateChart(chartIndex);
+    this.updateButtonState(boldToggle, this.chartSettings[chartIndex].textBold);
+  });
+  boldToggle.style.fontSize = '10px';
+  boldToggle.style.fontWeight = 'bold';
+  boldToggle.style.minWidth = '20px';
+  this.updateButtonState(boldToggle, this.chartSettings[chartIndex].textBold);
+
+  sizeContainer.appendChild(sizeLeftArrow);
+  sizeContainer.appendChild(sizeText);
+  sizeContainer.appendChild(sizeRightArrow);
+
+  container.appendChild(sizeContainer);
+  container.appendChild(boldToggle);
+
+  return container;
+},
+
+
   prepareChartData(rawData, selectedParams, selectedDates) {
     try {
       const filteredData = rawData
@@ -183,14 +268,11 @@ const ChartManager = {
     try {
       chartContainer = document.createElement('div');
       chartContainer.id = chartId;
-      chartContainer.className = 'chartContainer';
+      chartContainer.className = 'section';
       chartContainer.style.cssText = `
         margin: 20px 0;
         padding: 16px;
-        background: white;
-        border-radius: 12px;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
         width: 100%;
         display: block;
       `;
@@ -272,46 +354,60 @@ const ChartManager = {
   },
 
   createSettingsContainer(chartIndex) {
-    const container = document.createElement('div');
-    container.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      font-size: 12px;
-      color: #4a5568;
-    `;
+  const container = document.createElement('div');
+  container.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 12px;
+    color: #4a5568;
+  `;
 
-    // Настройка точек
-    const markersToggle = this.createTextButton('Точки', () => {
-      this.chartSettings[chartIndex].showMarkers = !this.chartSettings[chartIndex].showMarkers;
-      this.updateChart(chartIndex);
-      this.updateButtonState(markersToggle, this.chartSettings[chartIndex].showMarkers);
-    });
+  // Настройка точек
+  const markersToggle = this.createTextButton('Точки', () => {
+    this.chartSettings[chartIndex].showMarkers = !this.chartSettings[chartIndex].showMarkers;
+    this.updateChart(chartIndex);
     this.updateButtonState(markersToggle, this.chartSettings[chartIndex].showMarkers);
-    
-    // Настройка значений
-    const valuesToggle = this.createTextButton('Значения', () => {
-      this.chartSettings[chartIndex].showValues = !this.chartSettings[chartIndex].showValues;
-      this.updateChart(chartIndex);
-      this.updateButtonState(valuesToggle, this.chartSettings[chartIndex].showValues);
-    });
+  });
+  this.updateButtonState(markersToggle, this.chartSettings[chartIndex].showMarkers);
+  
+  // Настройка значений
+  const valuesToggle = this.createTextButton('Значения', () => {
+    this.chartSettings[chartIndex].showValues = !this.chartSettings[chartIndex].showValues;
+    this.updateChart(chartIndex);
     this.updateButtonState(valuesToggle, this.chartSettings[chartIndex].showValues);
+  });
+  this.updateButtonState(valuesToggle, this.chartSettings[chartIndex].showValues);
 
-    // Настройка сглаживания
-    const smoothingContainer = this.createSmoothingControl(chartIndex);
+  // Настройка сетки
+  const gridToggle = this.createTextButton('Сетка', () => {
+    this.chartSettings[chartIndex].showGrid = !this.chartSettings[chartIndex].showGrid;
+    this.updateChart(chartIndex);
+    this.updateButtonState(gridToggle, this.chartSettings[chartIndex].showGrid);
+  });
+  this.updateButtonState(gridToggle, this.chartSettings[chartIndex].showGrid);
 
-    // Настройка цветов
-    const colorsButton = this.createTextButton('Цвета', () => {
-      this.showColorPicker(chartIndex);
-    });
+  // Настройка сглаживания
+  const smoothingContainer = this.createSmoothingControl(chartIndex);
 
-    container.appendChild(markersToggle);
-    container.appendChild(valuesToggle);
-    container.appendChild(smoothingContainer);
-    container.appendChild(colorsButton);
+  // Настройка текста
+  const textContainer = this.createTextControl(chartIndex);
 
-    return container;
-  },
+  // Настройка цветов
+  const colorsButton = this.createTextButton('Цвета', () => {
+    this.showColorPicker(chartIndex);
+  });
+
+  container.appendChild(markersToggle);
+  container.appendChild(valuesToggle);
+  container.appendChild(gridToggle);
+  container.appendChild(smoothingContainer);
+  container.appendChild(textContainer);
+  container.appendChild(colorsButton);
+
+  return container;
+},
+
 
   createTextButton(text, onClick) {
     const button = document.createElement('span');
@@ -340,184 +436,307 @@ const ChartManager = {
   },
 
   createSmoothingControl(chartIndex) {
-    const container = document.createElement('div');
-    container.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 3px;
-    `;
+  const container = document.createElement('div');
+  container.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  `;
 
-    const leftArrow = document.createElement('span');
-    leftArrow.textContent = '◀';
-    leftArrow.style.cssText = `
-      cursor: pointer;
-      font-size: 10px;
-      color: #718096;
-      transition: color 0.2s ease;
-    `;
-    leftArrow.addEventListener('click', () => {
-      this.chartSettings[chartIndex].smoothing = Math.max(0, this.chartSettings[chartIndex].smoothing - 0.1);
-      this.updateChart(chartIndex);
-      smoothingText.textContent = `Сглаж: ${Math.round(this.chartSettings[chartIndex].smoothing * 10)}`;
-    });
-
-    const smoothingText = document.createElement('span');
+  const leftArrow = document.createElement('span');
+  leftArrow.textContent = '◀';
+  leftArrow.style.cssText = `
+    cursor: pointer;
+    font-size: 10px;
+    color: #718096;
+    transition: color 0.2s ease;
+  `;
+  leftArrow.addEventListener('click', () => {
+    this.chartSettings[chartIndex].smoothing = Math.max(0, this.chartSettings[chartIndex].smoothing - 0.2); // Увеличили шаг
+    this.updateChart(chartIndex);
     smoothingText.textContent = `Сглаж: ${Math.round(this.chartSettings[chartIndex].smoothing * 10)}`;
-    smoothingText.style.cssText = `
-      font-size: 11px;
-      color: #4a5568;
-      min-width: 55px;
-      text-align: center;
-    `;
+  });
 
-    const rightArrow = document.createElement('span');
-    rightArrow.textContent = '▶';
-    rightArrow.style.cssText = `
-      cursor: pointer;
-      font-size: 10px;
-      color: #718096;
-      transition: color 0.2s ease;
-    `;
-    rightArrow.addEventListener('click', () => {
-      this.chartSettings[chartIndex].smoothing = Math.min(1, this.chartSettings[chartIndex].smoothing + 0.1);
-      this.updateChart(chartIndex);
-      smoothingText.textContent = `Сглаж: ${Math.round(this.chartSettings[chartIndex].smoothing * 10)}`;
-    });
+  const smoothingText = document.createElement('span');
+  smoothingText.textContent = `Сглаж: ${Math.round(this.chartSettings[chartIndex].smoothing * 10)}`;
+  smoothingText.style.cssText = `
+    font-size: 11px;
+    color: #4a5568;
+    min-width: 55px;
+    text-align: center;
+  `;
 
-    [leftArrow, rightArrow].forEach(arrow => {
-      arrow.addEventListener('mouseover', () => arrow.style.color = '#2d3748');
-      arrow.addEventListener('mouseout', () => arrow.style.color = '#718096');
-    });
+  const rightArrow = document.createElement('span');
+  rightArrow.textContent = '▶';
+  rightArrow.style.cssText = `
+    cursor: pointer;
+    font-size: 10px;
+    color: #718096;
+    transition: color 0.2s ease;
+  `;
+  rightArrow.addEventListener('click', () => {
+    this.chartSettings[chartIndex].smoothing = Math.min(2, this.chartSettings[chartIndex].smoothing + 0.2); // Увеличили шаг и максимум
+    this.updateChart(chartIndex);
+    smoothingText.textContent = `Сглаж: ${Math.round(this.chartSettings[chartIndex].smoothing * 10)}`;
+  });
 
-    container.appendChild(leftArrow);
-    container.appendChild(smoothingText);
-    container.appendChild(rightArrow);
+  [leftArrow, rightArrow].forEach(arrow => {
+    arrow.addEventListener('mouseover', () => arrow.style.color = '#2d3748');
+    arrow.addEventListener('mouseout', () => arrow.style.color = '#718096');
+  });
 
-    return container;
-  },
+  container.appendChild(leftArrow);
+  container.appendChild(smoothingText);
+  container.appendChild(rightArrow);
+
+  return container;
+},
 
   showColorPicker(chartIndex) {
-    const selectedParams = window.AppState.selectedParamsByList[chartIndex];
-    if (!selectedParams) return;
+  const selectedParams = window.AppState.selectedParamsByList[chartIndex];
+  if (!selectedParams) return;
 
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  `;
+
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 450px;
+    max-height: 70vh;
+    overflow-y: auto;
+  `;
+
+  const title = document.createElement('h3');
+  title.textContent = 'Выбор цветов параметров';
+  title.style.cssText = `
+    margin: 0 0 15px 0;
+    color: #2d3748;
+    font-size: 16px;
+  `;
+
+  const colors = [
+    '#667eea', '#764ba2', '#f093fb', '#f5576c',
+    '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+    '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
+  ];
+
+  content.appendChild(title);
+
+  selectedParams.forEach(param => {
+    const paramContainer = document.createElement('div');
+    paramContainer.style.cssText = `
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
     `;
 
-    const content = document.createElement('div');
-    content.style.cssText = `
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      max-width: 400px;
-      max-height: 70vh;
-      overflow-y: auto;
-    `;
-
-    const title = document.createElement('h3');
-    title.textContent = 'Выбор цветов параметров';
-    title.style.cssText = `
-      margin: 0 0 15px 0;
+    const paramTitle = document.createElement('div');
+    paramTitle.textContent = param;
+    paramTitle.style.cssText = `
+      font-weight: bold;
+      margin-bottom: 8px;
       color: #2d3748;
-      font-size: 16px;
+      font-size: 13px;
     `;
 
-    const colors = [
-      '#667eea', '#764ba2', '#f093fb', '#f5576c',
-      '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
-      '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
-    ];
+    const colorContainer = document.createElement('div');
+    colorContainer.style.cssText = `
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+    `;
 
-    content.appendChild(title);
-
-    selectedParams.forEach(param => {
-      const paramContainer = document.createElement('div');
-      paramContainer.style.cssText = `
-        margin-bottom: 15px;
-        padding: 10px;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
+    // Стандартные цвета
+    colors.forEach(color => {
+      const colorButton = document.createElement('div');
+      colorButton.style.cssText = `
+        width: 24px;
+        height: 24px;
+        background: ${color};
+        border-radius: 4px;
+        cursor: pointer;
+        border: 2px solid ${this.chartSettings[chartIndex].colors[param] === color ? '#000' : 'transparent'};
       `;
 
-      const paramTitle = document.createElement('div');
-      paramTitle.textContent = param;
-      paramTitle.style.cssText = `
-        font-weight: bold;
-        margin-bottom: 8px;
-        color: #2d3748;
-        font-size: 13px;
-      `;
-
-      const colorContainer = document.createElement('div');
-      colorContainer.style.cssText = `
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-      `;
-
-      colors.forEach(color => {
-        const colorButton = document.createElement('div');
-        colorButton.style.cssText = `
-          width: 24px;
-          height: 24px;
-          background: ${color};
-          border-radius: 4px;
-          cursor: pointer;
-          border: 2px solid ${this.chartSettings[chartIndex].colors[param] === color ? '#000' : 'transparent'};
-        `;
-
-        colorButton.addEventListener('click', () => {
-          this.chartSettings[chartIndex].colors[param] = color;
-          // Обновляем границы всех кнопок цветов для этого параметра
-          colorContainer.querySelectorAll('div').forEach(btn => {
-            btn.style.border = '2px solid transparent';
-          });
-          colorButton.style.border = '2px solid #000';
-          this.updateChart(chartIndex);
-        });
-
-        colorContainer.appendChild(colorButton);
+      colorButton.addEventListener('click', () => {
+        this.chartSettings[chartIndex].colors[param] = color;
+        this.updateColorSelection(colorContainer, color);
+        this.updateChart(chartIndex);
       });
 
-      paramContainer.appendChild(paramTitle);
-      paramContainer.appendChild(colorContainer);
-      content.appendChild(paramContainer);
+      colorContainer.appendChild(colorButton);
     });
 
-    const closeButton = document.createElement('button');
-    closeButton.textContent = 'Закрыть';
-    closeButton.style.cssText = `
-      background: #4299e1;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-top: 15px;
-      width: 100%;
+    // Разделитель
+    const separator = document.createElement('div');
+    separator.style.cssText = `
+      width: 2px;
+      height: 24px;
+      background: #e2e8f0;
+      margin: 0 5px;
     `;
-    closeButton.addEventListener('click', () => document.body.removeChild(modal));
+    colorContainer.appendChild(separator);
 
-    content.appendChild(closeButton);
-    modal.appendChild(content);
-    document.body.appendChild(modal);
+    // Произвольный цвет
+    const customColorInput = document.createElement('input');
+    customColorInput.type = 'color';
+    customColorInput.value = this.chartSettings[chartIndex].colors[param] || '#667eea';
+    customColorInput.style.cssText = `
+      width: 30px;
+      height: 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 0;
+    `;
 
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        document.body.removeChild(modal);
-      }
+    customColorInput.addEventListener('change', (e) => {
+      this.chartSettings[chartIndex].colors[param] = e.target.value;
+      this.updateColorSelection(colorContainer, e.target.value);
+      this.updateChart(chartIndex);
     });
-  },
+
+    const customLabel = document.createElement('span');
+    customLabel.textContent = 'Свой';
+    customLabel.style.cssText = `
+      font-size: 11px;
+      color: #718096;
+      margin-left: 5px;
+    `;
+
+    colorContainer.appendChild(customColorInput);
+    colorContainer.appendChild(customLabel);
+
+    paramContainer.appendChild(paramTitle);
+    paramContainer.appendChild(colorContainer);
+    content.appendChild(paramContainer);
+  });
+
+  const closeButton = document.createElement('button');
+  closeButton.textContent = 'Закрыть';
+  closeButton.className = 'btn btn-primary'
+  closeButton.style.cssText = `
+    padding: 8px 16px;
+    margin-top: 15px;
+  `;
+  closeButton.addEventListener('click', () => document.body.removeChild(modal));
+
+  content.appendChild(closeButton);
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
+    }
+  });
+},
+
+// Новый вспомогательный метод для обновления выбора цвета
+updateColorSelection(container, selectedColor) {
+  container.querySelectorAll('div').forEach(btn => {
+    if (btn.style.background) {
+      btn.style.border = '2px solid transparent';
+    }
+  });
+  
+  container.querySelectorAll('div').forEach(btn => {
+    if (btn.style.background === selectedColor) {
+      btn.style.border = '2px solid #000';
+    }
+  });
+},
+
+// Функция для затемнения цвета
+darkenColor(color, amount = 0.3) {
+  const num = parseInt(color.replace("#", ""), 16);
+  const amt = Math.round(2.55 * amount * 100);
+  const R = (num >> 16) - amt;
+  const G = (num >> 8 & 0x00FF) - amt;
+  const B = (num & 0x0000FF) - amt;
+  return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+    (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+    (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+},
+
+// Обновленный метод создания трассировки
+createTrace(item, color, yaxis, chartIndex) {
+  try {
+    const settings = this.chartSettings[chartIndex];
+    const mode = settings.showMarkers ? 'lines+markers' : 'lines';
+    
+    const trace = {
+      x: item.dates || [],
+      y: item.values || [],
+      type: 'scatter',
+      mode: mode,
+      name: item.parameter || 'Неизвестный параметр',
+      line: { 
+        color: color, 
+        width: 3,
+        shape: 'spline',
+        smoothing: settings.smoothing
+      },
+      yaxis,
+      hovertemplate: '<b>%{fullData.name}</b><br>' +
+                     'Дата: %{x}<br>' +
+                     'Значение: %{y}<br>' +
+                     '<extra></extra>',
+      hoverlabel: {
+        bgcolor: 'rgba(255, 255, 255, 0.95)',
+        bordercolor: color,
+        font: { color: '#2d3748', size: 12 }
+      }
+    };
+
+    if (settings.showMarkers) {
+      trace.marker = { 
+        size: 8, 
+        symbol: 'circle', 
+        line: { width: 2, color: '#fff' },
+        color: color
+      };
+    }
+
+    // Добавляем текстовые значения если включено
+    if (settings.showValues) {
+      trace.mode = settings.showMarkers ? 'lines+markers+text' : 'lines+text';
+      trace.text = item.values.map(v => Math.round(v * 100) / 100);
+      trace.textposition = 'top center';
+      trace.textfont = {
+        size: settings.textSize,
+        color: this.darkenColor(color, 0.4), // Затемняем цвет
+        family: 'Inter, sans-serif',
+        // В Plotly используется weight вместо style для жирности
+        weight: settings.textBold ? 'bold' : 'normal'
+      };
+      // Добавляем белую обводку через texttemplate (если поддерживается)
+      trace.texttemplate = '%{text}';
+    }
+
+    return trace;
+  } catch (error) {
+    console.error('Ошибка создания трассировки:', error);
+    return {};
+  }
+},
+
 
   updateChart(chartIndex) {
     const selectedParams = window.AppState.selectedParamsByList[chartIndex];
@@ -564,12 +783,16 @@ const ChartManager = {
     try {
       const traces = this.prepareTraces(chartData, chartIndex);
       const layout = this.prepareLayout(chartIndex, chartData);
+
+      
       const config = {
         displayModeBar: true,
         modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'autoScale2d', 'zoom2d', 'toImage'],
         responsive: true,
         displaylogo: false
+        
       };
+      
       
       Plotly.newPlot(plotId, traces, layout, config);
     } catch (error) {
@@ -613,145 +836,91 @@ const ChartManager = {
     }
   },
 
-  createTrace(item, color, yaxis, chartIndex) {
-    try {
-      const settings = this.chartSettings[chartIndex];
-      const mode = settings.showMarkers ? 'lines+markers' : 'lines';
-      
-      const trace = {
-        x: item.dates || [],
-        y: item.values || [],
-        type: 'scatter',
-        mode: mode,
-        name: item.parameter || 'Неизвестный параметр',
-        line: { 
-          color: color, 
-          width: 3,
-          shape: 'spline',
-          smoothing: settings.smoothing
-        },
-        yaxis,
-        hovertemplate: '<b>%{fullData.name}</b><br>' +
-                       'Дата: %{x}<br>' +
-                       'Значение: %{y}<br>' +
-                       '<extra></extra>',
-        hoverlabel: {
-          bgcolor: 'rgba(255, 255, 255, 0.95)',
-          bordercolor: color,
-          font: { color: '#2d3748', size: 12 }
-        }
-      };
-
-      if (settings.showMarkers) {
-        trace.marker = { 
-          size: 8, 
-          symbol: 'circle', 
-          line: { width: 2, color: '#fff' },
-          color: color
-        };
-      }
-
-      // Добавляем текстовые значения если включено
-      if (settings.showValues) {
-        trace.mode = settings.showMarkers ? 'lines+markers+text' : 'lines+text';
-        trace.text = item.values.map(v => Math.round(v * 100) / 100);
-        trace.textposition = 'top center';
-        trace.textfont = {
-          size: 10,
-          color: color
-        };
-      }
-
-      return trace;
-    } catch (error) {
-      console.error('Ошибка создания трассировки:', error);
-      return {};
-    }
-  },
 
   prepareLayout(chartIndex, chartData) {
-    try {
-      const percentageData = chartData.filter(item => item && item.type === 'percentage');
-      const absoluteData = chartData.filter(item => item && item.type === 'absolute');
-      
-      const layout = {
-        xaxis: {
-          title: {
-            font: { size: 14, color: '#4a5568' }
-          },
-          gridcolor: 'rgba(0, 0, 0, 0.05)',
-          linecolor: '#e2e8f0',
-          linewidth: 2,
-          tickangle: -45,
-          tickfont: { size: 11, color: '#718096' },
-          showgrid: true,
-          zeroline: false
+  try {
+    const settings = this.chartSettings[chartIndex];
+    const percentageData = chartData.filter(item => item && item.type === 'percentage');
+    const absoluteData = chartData.filter(item => item && item.type === 'absolute');
+    
+    const layout = {
+      xaxis: {
+        title: {
+          font: { size: 14, color: '#4a5568' }
         },
-        yaxis: {
-          title: {
-            text: percentageData.length > 0 ? '<b>Проценты (%)</b>' : '<b>Значения</b>',
-            font: { size: 14, color: '#4a5568' }
-          },
-          side: 'left',
-          gridcolor: 'rgba(0, 0, 0, 0.05)',
-          linecolor: '#e2e8f0',
-          linewidth: 2,
-          showgrid: true,
-          zeroline: false,
-          tickfont: { size: 11, color: '#718096' }
+        gridcolor: settings.showGrid ? 'rgba(0, 0, 0, 0.05)' : 'transparent',
+        linecolor: '#e2e8f0',
+        linewidth: 2,
+        tickangle: -45,
+        tickfont: { size: 11, color: '#718096' },
+        showgrid: settings.showGrid,
+        zeroline: false
+      },
+      yaxis: {
+        title: {
+          text: percentageData.length > 0 ? '<b>Проценты (%)</b>' : '<b>Значения</b>',
+          font: { size: 14, color: '#4a5568' }
         },
-        yaxis2: {
-          title: {
-            text: absoluteData.length > 0 ? '<b>Абсолютные значения</b>' : '',
-            font: { size: 14, color: '#4a5568' }
-          },
-          side: 'right',
-          overlaying: 'y',
-          gridcolor: 'rgba(0, 0, 0, 0.02)',
-          linecolor: '#e2e8f0',
-          linewidth: 2,
-          showgrid: false,
-          zeroline: false,
-          tickfont: { size: 11, color: '#718096' }
+        side: 'left',
+        gridcolor: settings.showGrid ? 'rgba(0, 0, 0, 0.05)' : 'transparent',
+        linecolor: '#e2e8f0',
+        linewidth: 2,
+        showgrid: settings.showGrid,
+        zeroline: false,
+        tickfont: { size: 11, color: '#718096' }
+      },
+      yaxis2: {
+        title: {
+          text: absoluteData.length > 0 ? '<b>Абсолютные значения</b>' : '',
+          font: { size: 14, color: '#4a5568' }
         },
-        legend: {
-          x: 0.5,
-          y: -0.4,
-          xanchor: 'center',
-          yanchor: 'top',
-          orientation: 'h',
-          font: { size: 12, color: '#4a5568' },
-          bgcolor: 'rgba(255, 255, 255, 0.9)',
-          bordercolor: 'rgba(0, 0, 0, 0.1)',
-          borderwidth: 1,
-          itemsizing: 'constant',
-          itemwidth: 30
-        },
-        margin: { l: 80, r: 80, t: 40, b: 200 },
-        showlegend: true,
-        hovermode: 'closest',
-        plot_bgcolor: '#fafafa',
-        paper_bgcolor: '#ffffff',
-        font: { 
-          family: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', 
-          color: '#2d3748' 
-        },
-        hoverdistance: 20,
-        spikedistance: 100
-      };
-      
-      if (percentageData.length === 0) {
-        delete layout.yaxis2;
-      } else if (absoluteData.length === 0) {
-        delete layout.yaxis2;
-      }
-      
-      return layout;
-    } catch (error) {
-      console.error('Ошибка создания макета графика:', error);
-      return {};
+        side: 'right',
+        overlaying: 'y',
+        gridcolor: settings.showGrid ? 'rgba(0, 0, 0, 0.02)' : 'transparent',
+        linecolor: '#e2e8f0',
+        linewidth: 2,
+        showgrid: false,
+        zeroline: false,
+        tickfont: { size: 11, color: '#718096' }
+      },
+      legend: {
+        x: 0.5,
+        y: -0.4,
+        xanchor: 'center',
+        yanchor: 'top',
+        orientation: 'h',
+        font: { size: 12, color: '#4a5568' },
+        bgcolor: 'rgba(255, 255, 255, 0.9)',
+        bordercolor: 'rgba(0, 0, 0, 0.1)',
+        borderwidth: 1,
+        itemsizing: 'constant',
+        itemwidth: 30
+      },
+      margin: { l: 80, r: 80, t: 40, b: 200 },
+      showlegend: true,
+      hovermode: 'closest',
+      plot_bgcolor: '#fafafa',
+      paper_bgcolor: '#ffffff',
+      font: { 
+        family: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', 
+        color: '#2d3748' 
+      },
+      hoverdistance: 20,
+      spikedistance: 100
+    };
+    
+    if (percentageData.length === 0) {
+      delete layout.yaxis2;
+    } else if (absoluteData.length === 0) {
+      delete layout.yaxis2;
     }
-  },
+    
+    return layout;
+  } catch (error) {
+    console.error('Ошибка создания макета графика:', error);
+    return {};
+  }
+},
 
   closeChart(chartIndex) {
     try {

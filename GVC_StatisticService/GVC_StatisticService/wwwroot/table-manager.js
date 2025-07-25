@@ -39,36 +39,54 @@ const TableManager = {
   if (!window.AppState.selectedDates) {
     window.AppState.selectedDates = new Set();
   }
+  
+  // Инициализируем настройки тоглов для каждой табы
+  if (!window.AppState.tabToggles) {
+    window.AppState.tabToggles = [{}]; // Каждый элемент - объект с настройками для конкретной табы
+  }
+  
+  // Определяем доступные тоглы (можно вынести в конфиг)
+  this.availableToggles = [
+    { key: 'showGrid', label: 'Сетка', default: true },
+    { key: 'showLegend', label: 'Легенда', default: true },
+    { key: 'smoothLines', label: 'Сглаживание', default: false },
+    { key: 'showPoints', label: 'Точки', default: true },
+    { key: 'showTrend', label: 'Тренд', default: false }
+  ];
 },
 
 
 
 
-calculateAggregatedValue(field, filteredData) {
+
+
+ calculateAggregatedValue(field, filteredData) {
   const values = filteredData
     .map(entry => {
       let value = entry[field];
-      // Если это процент, убираем знак % и делим на 100
+
+      // Убираем % и делим на 100, если это строка-процент
       if (typeof value === 'string' && value.endsWith('%')) {
         value = parseFloat(value.replace('%', '')) / 100;
       }
+
       return parseFloat(value) || 0;
     })
     .filter(v => !isNaN(v));
 
   if (values.length === 0) return 'N/A';
 
-  // Определяем тип агрегации по названию поля
+  // Если это поле-процент — считаем среднее арифметическое и возвращаем с %
   if (field.startsWith('процент_')) {
-    // Для процентов - среднее арифметическое
     const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
     return (avg * 100).toFixed(1) + '%';
   } else {
-    // Для обычных параметров - сумма
+    // Для остальных — просто сумма
     const sum = values.reduce((sum, val) => sum + val, 0);
     return sum.toFixed(1);
   }
 },
+
 
   setupEventListeners() {
     // Кнопка поворота таблицы
@@ -92,6 +110,18 @@ calculateAggregatedValue(field, filteredData) {
     button.textContent = window.AppState.transposed ? 'Вертикальный вид' : 'Горизонтальный вид';
   },
 
+
+syncTabToggles() {
+  while (window.AppState.tabToggles.length < window.AppState.selectedParamsByList.length) {
+    // Создаем новый объект с дефолтными значениями для новой табы
+    const defaultToggles = {};
+    this.availableToggles.forEach(toggle => {
+      defaultToggles[toggle.key] = toggle.default;
+    });
+    window.AppState.tabToggles.push(defaultToggles);
+  }
+},
+
 addNewList() {
   window.AppState.selectedParamsByList.push([]);
   window.AppState.activeListIndex = window.AppState.selectedParamsByList.length - 1;
@@ -108,6 +138,8 @@ addNewList() {
   // Переключаемся на новый таб
   this.switchTab(window.AppState.activeListIndex);
 },
+
+
 
   syncChartsState() {
     while (window.AppState.chartsVisible.length < window.AppState.selectedParamsByList.length) {
