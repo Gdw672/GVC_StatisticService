@@ -39,6 +39,20 @@ const TableManager = {
   if (!window.AppState.selectedDates) {
     window.AppState.selectedDates = new Set();
   }
+  
+  // Инициализируем настройки тоглов для каждой табы
+  if (!window.AppState.tabToggles) {
+    window.AppState.tabToggles = [{}]; // Каждый элемент - объект с настройками для конкретной табы
+  }
+  
+  // Определяем доступные тоглы (можно вынести в конфиг)
+  this.availableToggles = [
+    { key: 'showGrid', label: 'Сетка', default: true },
+    { key: 'showLegend', label: 'Легенда', default: true },
+    { key: 'smoothLines', label: 'Сглаживание', default: false },
+    { key: 'showPoints', label: 'Точки', default: true },
+    { key: 'showTrend', label: 'Тренд', default: false }
+  ];
 },
 
 
@@ -92,6 +106,18 @@ calculateAggregatedValue(field, filteredData) {
     button.textContent = window.AppState.transposed ? 'Вертикальный вид' : 'Горизонтальный вид';
   },
 
+
+syncTabToggles() {
+  while (window.AppState.tabToggles.length < window.AppState.selectedParamsByList.length) {
+    // Создаем новый объект с дефолтными значениями для новой табы
+    const defaultToggles = {};
+    this.availableToggles.forEach(toggle => {
+      defaultToggles[toggle.key] = toggle.default;
+    });
+    window.AppState.tabToggles.push(defaultToggles);
+  }
+},
+
 addNewList() {
   window.AppState.selectedParamsByList.push([]);
   window.AppState.activeListIndex = window.AppState.selectedParamsByList.length - 1;
@@ -108,6 +134,84 @@ addNewList() {
   // Переключаемся на новый таб
   this.switchTab(window.AppState.activeListIndex);
 },
+
+addNewList() {
+  window.AppState.selectedParamsByList.push([]);
+  window.AppState.activeListIndex = window.AppState.selectedParamsByList.length - 1;
+  
+  // Добавляем новый диапазон дат для нового списка
+  window.AppState.dateRangesByList.push({ startDate: '', endDate: '' });
+  
+  // Добавляем новые настройки тоглов для нового списка
+  const defaultToggles = {};
+  this.availableToggles.forEach(toggle => {
+    defaultToggles[toggle.key] = toggle.default;
+  });
+  window.AppState.tabToggles.push(defaultToggles);
+  
+  // Синхронизируем состояние графиков
+  this.syncChartsState();
+  
+  this.renderTabs();
+  this.render();
+  
+  // Переключаемся на новый таб
+  this.switchTab(window.AppState.activeListIndex);
+},
+
+handleToggleChange(tabIndex, toggleKey, value) {
+  // Обновляем состояние тогла для конкретной табы
+  window.AppState.tabToggles[tabIndex][toggleKey] = value;
+  
+  // Передаем изменения в ChartManager, если график активен
+  if (window.AppState.chartsVisible && window.AppState.chartsVisible[tabIndex] && window.ChartManager) {
+    window.ChartManager.updateChartOptions(tabIndex, toggleKey, value);
+  }
+},
+
+createToggles(tabIndex) {
+  const togglesContainer = document.createElement('div');
+  togglesContainer.className = 'toggles-container';
+  
+  const togglesTitle = document.createElement('div');
+  togglesTitle.className = 'toggles-title';
+  togglesTitle.textContent = 'Настройки графика:';
+  togglesContainer.appendChild(togglesTitle);
+  
+  const togglesGrid = document.createElement('div');
+  togglesGrid.className = 'toggles-grid';
+  
+  this.availableToggles.forEach(toggle => {
+    const toggleWrapper = document.createElement('div');
+    toggleWrapper.className = 'toggle-wrapper';
+    
+    const toggleInput = document.createElement('input');
+    toggleInput.type = 'checkbox';
+    toggleInput.id = `toggle-${tabIndex}-${toggle.key}`;
+    toggleInput.className = 'toggle-input';
+    toggleInput.checked = window.AppState.tabToggles[tabIndex][toggle.key];
+    
+    const toggleLabel = document.createElement('label');
+    toggleLabel.setAttribute('for', `toggle-${tabIndex}-${toggle.key}`);
+    toggleLabel.className = 'toggle-label';
+    toggleLabel.textContent = toggle.label;
+    
+    // Обработчик изменения тогла
+    toggleInput.addEventListener('change', (e) => {
+      this.handleToggleChange(tabIndex, toggle.key, e.target.checked);
+    });
+    
+    toggleWrapper.appendChild(toggleInput);
+    toggleWrapper.appendChild(toggleLabel);
+    togglesGrid.appendChild(toggleWrapper);
+  });
+  
+  togglesContainer.appendChild(togglesGrid);
+  return togglesContainer;
+},
+
+
+
 
   syncChartsState() {
     while (window.AppState.chartsVisible.length < window.AppState.selectedParamsByList.length) {
@@ -465,13 +569,184 @@ renderTabs() {
     });
   }
   
+  // Контейнер для настроек (даты + тоглы)
+  const settingsContainer = document.createElement('div');
+  settingsContainer.className = 'settings-container';
+  
   // Контейнер для выбора дат
   const dateFilters = this.createDateFilters(index);
   
+  // Контейнер для тоглов
+  const toggles = this.createToggles(index);
+  
   tabContent.appendChild(tagsContainer);
-  tabContent.appendChild(dateFilters);
+  settingsContainer.appendChild(dateFilters);
+  settingsContainer.appendChild(toggles);
+  tabContent.appendChild(settingsContainer);
   
   return tabContent;
+},
+
+// Полная замена метода renderTabs (обновляем только для синхронизации тоглов)
+renderTabs() {
+  const container = document.getElementById(this.config.listsContainer);
+  container.innerHTML = "";
+  
+  // Синхронизируем состояние графиков с количеством списков
+  this.syncChartsState();
+  this.syncDateRanges();
+  this.syncTabToggles(); // Добавляем синхронизацию тоглов
+  
+  // Создаем контейнер для табов
+  const tabsContainer = document.createElement('div');
+  tabsContainer.className = 'tabs-container';
+
+  // Проверяем существование tab-nav
+  let tabNav = document.querySelector('.tab-nav');
+  if (!tabNav) {
+    tabNav = document.createElement('div');
+    tabNav.className = 'tab-nav';
+    tabsContainer.appendChild(tabNav);
+  }
+  
+  // Очищаем существующий tab-nav
+  tabNav.innerHTML = '';
+  
+  // Создаем кнопки табов
+  window.AppState.selectedParamsByList.forEach((params, index) => {
+    const tabBtn = document.createElement('button');
+    tabBtn.className = 'tab-btn';
+
+    // Кнопка удаления списка
+    const KillBtn = document.createElement('button');
+    KillBtn.className = 'btn btn-xs btn-overlay right';
+    KillBtn.textContent = '🗙';
+    KillBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.deleteList(index);
+    });
+
+    if (index === window.AppState.activeListIndex) {
+      tabBtn.classList.add('active');
+    }
+    
+    const tabLabel = document.createElement('span');
+    tabLabel.textContent = `График ${index + 1}`;
+    
+    const paramCounter = document.createElement('span');
+    paramCounter.className = 'param-counter';
+    paramCounter.textContent = params.length;
+    
+    tabBtn.appendChild(paramCounter);
+    tabBtn.appendChild(tabLabel);
+    tabBtn.appendChild(KillBtn);
+    
+    tabBtn.addEventListener('click', () => {
+      this.switchTab(index);
+    });
+    
+    tabNav.appendChild(tabBtn);
+  });
+  
+  // Кнопка добавления нового таба
+  const addTabBtn = document.createElement('button');
+  addTabBtn.className = 'btn btn-xs btn-secondary';
+  addTabBtn.textContent = '+';
+  addTabBtn.addEventListener('click', () => {
+    this.addNewList();
+  });
+
+  // Кнопка сокрытия/показа tab-content-container
+  const toggleTabContentBtn = document.createElement('button');
+  toggleTabContentBtn.className = 'btn btn-xs btn-secondary end';
+  toggleTabContentBtn.textContent = window.AppState.isTabContentHidden ? '+' : '–';
+  toggleTabContentBtn.addEventListener('click', () => {
+    const tabContentContainer = document.querySelector('.tab-content-container');
+    if (tabContentContainer) {
+      tabContentContainer.classList.toggle('hidden');
+      window.AppState.isTabContentHidden = tabContentContainer.classList.contains('hidden');
+      toggleTabContentBtn.textContent = window.AppState.isTabContentHidden ? '+' : '–';
+    }
+  });
+
+  // Кнопка показа/скрытия графика
+  const GraphBtn = document.createElement('button');
+  GraphBtn.className = 'btn btn-xs btn-secondary first';
+  GraphBtn.textContent = window.AppState.chartsVisible[window.AppState.activeListIndex] ? '📉' : '📉';
+  GraphBtn.addEventListener('click', () => {
+    const isChartVisible = window.AppState.chartsVisible[window.AppState.activeListIndex];
+    if (isChartVisible) {
+      window.ChartManager.closeChart(window.AppState.activeListIndex);
+    } else {
+      window.ChartManager.showChart(window.AppState.activeListIndex);
+    }
+    GraphBtn.textContent = window.AppState.chartsVisible[window.AppState.activeListIndex] ? '📉' : '📉';
+  });
+
+  const tabBtnContainer = document.createElement('div');
+  tabBtnContainer.className = 'tab-btn-container end';
+
+  tabNav.appendChild(addTabBtn);
+  tabNav.appendChild(tabBtnContainer);
+  tabNav.appendChild(GraphBtn);
+
+  tabBtnContainer.appendChild(toggleTabContentBtn);
+  tabsContainer.appendChild(tabNav);
+  
+  // Создаем контейнер для содержимого табов
+  const tabContentContainerNew = document.createElement('div');
+  tabContentContainerNew.className = 'tab-content-container';
+  if (window.AppState.isTabContentHidden) {
+    tabContentContainerNew.classList.add('hidden');
+  }
+  
+  // Создаем контент табов
+  window.AppState.selectedParamsByList.forEach((params, index) => {
+    const tabContent = this.createTabContent(params, index);
+    tabContentContainerNew.appendChild(tabContent);
+  });
+  
+  tabsContainer.appendChild(tabContentContainerNew);
+  container.appendChild(tabsContainer);
+},
+
+getToggleSettings(tabIndex) {
+  return window.AppState.tabToggles[tabIndex] || {};
+},
+
+// Обновить метод deleteList для удаления тоглов
+deleteList(index) {
+  if (window.AppState.selectedParamsByList.length <= 1) {
+    alert("Нельзя удалить последний график!");
+    return;
+  }
+  
+  // Закрываем график если он открыт
+  if (window.AppState.chartsVisible && window.AppState.chartsVisible[index]) {
+    window.ChartManager.closeChart(index);
+  }
+  
+  // Удаляем список
+  window.AppState.selectedParamsByList.splice(index, 1);
+  
+  // Удаляем диапазон дат
+  window.AppState.dateRangesByList.splice(index, 1);
+  
+  // Удаляем настройки тоглов
+  window.AppState.tabToggles.splice(index, 1);
+  
+  // Удаляем состояние графика
+  if (window.AppState.chartsVisible) {
+    window.AppState.chartsVisible.splice(index, 1);
+  }
+  
+  // Корректируем активный индекс
+  if (window.AppState.activeListIndex >= index) {
+    window.AppState.activeListIndex = Math.max(0, window.AppState.activeListIndex - 1);
+  }
+
+  this.renderTabs();
+  this.render();
 },
 
  createDateFilters(index) {
