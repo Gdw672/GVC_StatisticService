@@ -86,7 +86,7 @@ calculateAggregatedValue(field, filteredData) {
       }
     }
 
-    // Обработка строковых процентов (например: "90.2%")
+    // Убираем % и делим на 100, если это строка-процент
     if (typeof value === 'string' && value.endsWith('%')) {
       value = parseFloat(value.replace('%', '')) / 100;
     }
@@ -96,17 +96,14 @@ calculateAggregatedValue(field, filteredData) {
 
   if (values.length === 0) return 'N/A';
 
-  // Среднее для процентов
   if (field.startsWith('процент_')) {
     const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
     return (avg * 100).toFixed(1) + '%';
   } else {
-    // Сумма для обычных чисел
     const sum = values.reduce((sum, val) => sum + val, 0);
     return sum.toFixed(1);
   }
-}
-,
+},
 
 
   setupEventListeners() {
